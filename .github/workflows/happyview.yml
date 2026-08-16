@@ -1,0 +1,20 @@
+name: happyview-upstream
+on:
+  schedule:
+    # nightly check that our Dockerfile still tracks upstream
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node scripts/check-happyview-upstream.mjs
+      - name: Notify on drift
+        if: failure()
+        run: |
+          echo "::error::HappyView upstream Dockerfile drifted from our pinned v2.13.0. Run 'npm run hv:sync' to update."

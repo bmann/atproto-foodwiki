@@ -1,0 +1,19 @@
+# Local HappyView dev instance (SQLite) via upstream source build.
+# Usage: docker compose -f deploy/happyview/docker-compose.dev.yml up --build
+name: foodwiki-happyview
+services:
+  happyview:
+    build:
+      context: https://github.com/gamesgamesgamesgamesgames/happyview.git#v2.13.0
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: sqlite://data/happyview.db?mode=rwc
+      PUBLIC_URL: http://127.0.0.1:3000
+      SESSION_SECRET: dev-session-secret-change-me-0123456789abcdef0123456789abcdef
+      PORT: "3000"
+    volumes:
+      - happyview-data:/app/data
+volumes:
+  happyview-data:
