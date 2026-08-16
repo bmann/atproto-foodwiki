@@ -29,29 +29,39 @@ v2.13.0, which has its own multi-stage Dockerfile).
 3. **First login = super user.** Open the dashboard, sign in with
    `foodwiki.bmann.ca` → that account becomes super user.
 
-4. **Add lexicons** (Dashboard → Lexicons → Add Lexicon):
+4. **Add lexicons + enable Spaces** (once you have an admin session/API key):
+
+   ```bash
+   HAPPYVIEW_URL=https://<your-service>.up.railway.app \
+   HAPPYVIEW_API_KEY=hv_... \
+   node scripts/provision-happyview.mjs
+   ```
+   Or add manually in the dashboard (Dashboard → Lexicons → Add Lexicon →
+   Network, by NSID):
    - Record: `app.bulleted.node`, `app.bulleted.outline`, `app.bulleted.note`,
      `app.bulleted.mirror`, `app.bulleted.comment`, `app.bulleted.commentPolicy`
      (backfill ON)
    - Query: `app.bulleted.getOutline` (target `app.bulleted.node`)
    - Permission sets: `app.bulleted.authFull`, `app.bulleted.appAccess`
    - (Optional) admin: `app.bulleted.admin.*`
-   Use **Network** lookup by NSID — HappyView resolves from bulleted.app's
-   `_lexicon.bulleted.app` TXT → DID → PDS.
 
-5. **Enable Spaces** (backlog, but turn on now):
-   Dashboard → Settings → `feature.spaces_enabled=true`.
+   HappyView resolves network lexicons from bulleted.app's `_lexicon.bulleted.app`
+   TXT → DID → PDS automatically.
+
+5. **Enable Spaces** (backlog but turn on now): the provisioner sets
+   `feature.spaces_enabled=true`; or Dashboard → Settings.
 
 ## Local dev
 
 ```bash
-docker compose -f deploy/happyview/docker-compose.dev.yml up --build
+docker compose -f deploy/happyview/docker-compose.dev.yml up --build -d
 # dashboard at http://127.0.0.1:3000
+# sign in once with foodwiki.bmann.ca → super user; then:
+HAPPYVIEW_URL=http://127.0.0.1:3000 HAPPYVIEW_API_KEY=hv_... node scripts/provision-happyview.mjs
 ```
 
 ## Keep in sync
 
-`scripts/check-happyview-upstream.mjs` (run in CI via
-`.github/workflows/happyview.yml`) verifies `deploy/happyview/Dockerfile` tracks
-the upstream pinned ref. Bump the ref + Dockerfile together:
+`scripts/check-happyview-upstream.mjs` (CI: `.github/workflows/happyview.yml`)
+verifies `deploy/happyview/Dockerfile` tracks upstream pinned ref. To bump:
 `HAPPYVIEW_REF=v2.13.x node scripts/check-happyview-upstream.mjs`.
