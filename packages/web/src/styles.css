@@ -1,0 +1,29 @@
+:root {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light dark;
+  --accent: #2f8f5b;
+  --muted: #888;
+  --border: rgba(128, 128, 128, 0.25);
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: #111; color: #e8e8e8; }
+.app { max-width: 860px; margin: 0 auto; padding: 1.2rem; }
+.topbar { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+h1 { font-size: 1.4rem; margin: 0; }
+.did-form { display: flex; gap: .4rem; margin-left: auto; }
+.did-form input { background: #222; border: 1px solid var(--border); color: inherit; border-radius: .4rem; padding: .35rem .6rem; width: 20rem; }
+button { background: var(--accent); border: 0; border-radius: .4rem; padding: .35rem .8rem; color: #fff; cursor: pointer; }
+.outline { margin-top: 1.4rem; }
+h2 { font-size: 1.15rem; margin: 0 0 .3rem; }
+.meta { color: var(--muted); font-size: .8rem; margin: 0 0 1rem; }
+.nodes, .children { list-style: none; margin: 0; padding: 0; }
+.children { margin-top: .1rem; }
+.node { display: flex; align-items: flex-start; gap: .45rem; padding: .22rem 0; border-left: 1px solid transparent; }
+.node:hover { background: #1c1c1c; border-radius: .3rem; }
+.bullet { color: var(--accent); flex: 0 0 auto; }
+.node h1, .node h2, .node h3 { margin: 0; font-size: inherit; }
+.node .text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.node.done .text { text-decoration: line-through; color: var(--muted); }
+.count { margin-left: auto; color: var(--muted); font-size: .75rem; align-self: center; }
+.error { color: #ff6b6b; }
+.status, .empty { color: var(--muted); }

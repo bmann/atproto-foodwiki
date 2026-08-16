@@ -8,3 +8,8 @@ coverage/
 .happyview/
 data/
 .tmp/deploy/happyview/.railway-secrets.env
+
+# Vite / build
+packages/web/node_modules/
+packages/web/dist/
+packages/web/.vite/

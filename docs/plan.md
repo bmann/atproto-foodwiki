@@ -79,7 +79,7 @@ Users' PDS (first: foodwiki.bmann.ca on shimeji.us-east.host.bsky.network)
 - **Version note**: dashboard shows "0.1.0" — that's HappyView's internal version string; the release is v2.13.0. Not a problem.
 - **Admin / super user**: `bmann.ca` (`did:plc:2cxgdrgtsmrbqnjkwyplmp43`), logged in via dashboard. **API key**: `hv_fc5ea2be45df401269e8e7776645f556` (created in Dashboard → Access → API Keys). Key scopes: full admin for provisioning.
 - **Service identity**: `foodwiki.bmann.ca` (`did:plc:kwclrfytscd4udqzmsv42rj3`), mode `attach_account`, setup complete. This account represents the appview.
-- **Web app domain (BACKLOG)**: `foodwiki.bmann.ca` will be the app domain, added to Railway later.
+- **Web app domain (BACKLOG)**: `foodwiki.bmann.ca` will be the app domain (custom domain on Railway later). It's also the appview's service identity account (see above).
 
 ### Lexicons provisioned (all `source: network` — auto-update from bulleted.app)
 - Record: `app.bulleted.node`, `app.bulleted.outline`, `app.bulleted.note`, `app.bulleted.mirror`, `app.bulleted.comment`, `app.bulleted.commentPolicy`
@@ -101,6 +101,7 @@ Users' PDS (first: foodwiki.bmann.ca on shimeji.us-east.host.bsky.network)
 ### Known gaps / next (Phase 4+)
 - Web app (Phase 4): reads via `getOutline`, writes via OAuth + `com.atproto.repo.*` to user PDS. Food-focused outliner UI.
 - OAuth for the *web app*: need a public client_id + redirect on the app domain (foodwiki.bmann.ca later; for now dev via loopback or Railway app URL).
+- Import from **https://github.com/bmann/twgroceries** (live TiddlyWiki source of https://foodwiki.bmann.ca static export) into the bulleted outliner. Repo accessible via our GitHub PAT. **(backlog)**
 - Structured recipes via `exchange.recipe` (backlog).
 - Port foodwiki.bmann.ca static TiddlyWiki content (backlog).
 - HappyView Spaces permissioned data (backlog; flag already enabled).
