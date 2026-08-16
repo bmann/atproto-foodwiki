@@ -12,8 +12,11 @@ v2.13.0, which has its own multi-stage Dockerfile).
 
 1. **Create a Railway project**. Add two services:
    - **PostgreSQL** (Railway plugin)
-   - **HappyView** → *New Service → Dockerfile*, source = this repo
-     (`deploy/happyview/Dockerfile`, pinned to upstream v2.13.0).
+   - **HappyView** → *New Service → Deploy from GitHub repo*, source =
+     `bmann/atproto-foodwiki`. Railway reads `deploy/happyview/railway.json`
+     (schema at `https://railway.com/railway.schema.json`), which sets
+     `builder = DOCKERFILE` and `dockerfilePath = deploy/happyview/Dockerfile`
+     (pinned to upstream v2.13.0).
 
 2. **Environment variables** on the HappyView service. **Most important: `PUBLIC_URL` must be exactly `https://<host>` (scheme included, no trailing slash, no path).** A schemeless URL (e.g. `happyview.up.railway.app`) makes HappyView panic at boot with `ClientMetadata(InvalidClientId)` (it builds `{PUBLIC_URL}/oauth-client-metadata.json` as the OAuth client_id, which must parse as a URL). Run `PUBLIC_URL=... node scripts/validate-public-url.mjs` to check.
 
@@ -37,7 +40,21 @@ v2.13.0, which has its own multi-stage Dockerfile).
    node scripts/provision-happyview.mjs
    ```
    Or add manually in the dashboard (Dashboard → Lexicons → Add Lexicon →
-   Network, by NSID):
+   Network, by NSID).
+
+### Branch & PR deploys
+
+`main` is protected on GitHub (requires the `check` workflow + one review), and
+Railway auto-deploys `main`. To preview branches/PRs:
+
+1. In Railway, open the HappyView service → **Settings → Environments** →
+   **Add environment → Branch** (e.g. `staging`).
+2. Enable **PR environments** (Railway GitHub App) so each pull request gets its
+   own preview URL; the app's `railway.json` uses `deploy/happyview/Dockerfile`
+   for every environment.
+3. Per-branch envs inherit prod variables; override `PUBLIC_URL` to the preview
+   service URL (absolute, no trailing slash — see the gotcha above) so OAuth
+   works on the preview too.
    - Record: `app.bulleted.node`, `app.bulleted.outline`, `app.bulleted.note`,
      `app.bulleted.mirror`, `app.bulleted.comment`, `app.bulleted.commentPolicy`
      (backfill ON)
