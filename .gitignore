@@ -7,4 +7,4 @@ dist/
 coverage/
 .happyview/
 data/
-.tmp/
+.tmp/deploy/happyview/.railway-secrets.env
