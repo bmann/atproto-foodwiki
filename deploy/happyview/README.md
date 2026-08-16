@@ -15,12 +15,12 @@ v2.13.0, which has its own multi-stage Dockerfile).
    - **HappyView** → *New Service → Dockerfile*, source = this repo
      (`deploy/happyview/Dockerfile`, pinned to upstream v2.13.0).
 
-2. **Environment variables** on the HappyView service:
+2. **Environment variables** on the HappyView service. **Most important: `PUBLIC_URL` must be exactly `https://<host>` (scheme included, no trailing slash, no path).** A schemeless URL (e.g. `happyview.up.railway.app`) makes HappyView panic at boot with `ClientMetadata(InvalidClientId)` (it builds `{PUBLIC_URL}/oauth-client-metadata.json` as the OAuth client_id, which must parse as a URL). Run `PUBLIC_URL=... node scripts/validate-public-url.mjs` to check.
 
    | Variable | Value |
    |---|---|
    | `DATABASE_URL` | `postgres://…` from the Railway Postgres service |
-   | `PUBLIC_URL` | `https://<your-service>.up.railway.app` (or custom domain) — required for OAuth |
+   | `PUBLIC_URL` | `https://<your-service>.up.railway.app` — **must be a full absolute URL with scheme, no trailing slash, no path**. Missing `https://` causes boot panic `ClientMetadata(InvalidClientId)` |
    | `SESSION_SECRET` | `openssl rand -base64 48` (≥32 bytes) |
    | `PORT` | `3000` |
    | `RELAY_URL` | `https://relay1.us-east.bsky.network` (optional) |
