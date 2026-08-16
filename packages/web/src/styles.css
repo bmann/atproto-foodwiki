@@ -24,6 +24,9 @@ h2 { font-size: 1.15rem; margin: 0 0 .3rem; }
 .node h1, .node h2, .node h3 { margin: 0; font-size: inherit; }
 .node .text { white-space: pre-wrap; overflow-wrap: anywhere; }
 .node.done .text { text-decoration: line-through; color: var(--muted); }
-.count { margin-left: auto; color: var(--muted); font-size: .75rem; align-self: center; }
+.count { color: var(--muted); font-size: .75rem; align-self: center; }
+.meta .count { margin-left: .6rem; }
+.did-link { color: var(--accent); text-decoration: none; }
+.did-link:hover { text-decoration: underline; }
 .error { color: #ff6b6b; }
 .status, .empty { color: var(--muted); }
