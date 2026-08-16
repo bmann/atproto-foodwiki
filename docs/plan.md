@@ -86,7 +86,7 @@ Users' PDS (first: foodwiki.bmann.ca on shimeji.us-east.host.bsky.network)
 - Query: `app.bulleted.getOutline` (target_collection `app.bulleted.node`)
 - Permission sets: `app.bulleted.authFull`, `app.bulleted.appAccess` (present on network via Lexicon Garden; added manually if needed for OAuth scopes)
 - `getOutline` responds publicly (`{"records":[]}` — foodwiki.bmann.ca has no `app.bulleted.*` records yet)
-- **Backfill**: currently `false` on record lexicons (network-add path). Zero existing records so fine; trigger `/admin/backfill` if we later add historical records. Jetstream live-indexes new ones.
+- **Backfill**: ✅ **network-wide backfill completed** (2026-08-16): 61 repos, 685 `app.bulleted.*` records, 0 errors. Jetstream now live-indexes new records. Trigger new backfills via `POST /admin/backfill` (empty body = all collections/all repos).
 
 ### Settings
 - `feature.spaces_enabled=true` (HappyView Spaces for permissioned data — backlog, but flag on)
@@ -101,6 +101,8 @@ Users' PDS (first: foodwiki.bmann.ca on shimeji.us-east.host.bsky.network)
 ### Known gaps / next (Phase 4+)
 - Web app (Phase 4): reads via `getOutline`, writes via OAuth + `com.atproto.repo.*` to user PDS. Food-focused outliner UI.
 - OAuth for the *web app*: need a public client_id + redirect on the app domain (foodwiki.bmann.ca later; for now dev via loopback or Railway app URL).
+- **FoodWiki root feature** (spec in `FEATURES.md`): user picks whole-account vs a root bullet as their FoodWiki; backend already supports both (`app.bulleted.outline` rkey `self` vs subtree-at-root); chooser UI is planned.
+- Web app Dockerfile (`deploy/web/`), nginx SPA, branch/PR deploy docs (`deploy/web/README.md`) — deploy to Railway is next.
 - Import from **https://github.com/bmann/twgroceries** (live TiddlyWiki source of https://foodwiki.bmann.ca static export) into the bulleted outliner. Repo accessible via our GitHub PAT. **(backlog)**
 - Structured recipes via `exchange.recipe` (backlog).
 - Port foodwiki.bmann.ca static TiddlyWiki content (backlog).
