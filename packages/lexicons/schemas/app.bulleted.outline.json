@@ -1,0 +1,79 @@
+{
+  "id": "app.bulleted.outline",
+  "defs": {
+    "main": {
+      "key": "any",
+      "type": "record",
+      "record": {
+        "type": "object",
+        "required": [
+          "createdAt"
+        ],
+        "properties": {
+          "root": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "The node at the top of this outline. Absent means the whole forest; present if and only if the record key is not 'self'. The Lexicon cannot express that conditional, so the application enforces it."
+          },
+          "image": {
+            "type": "blob",
+            "accept": [
+              "image/png",
+              "image/jpeg",
+              "image/webp"
+            ],
+            "maxSize": 1000000,
+            "description": "Preview image for link cards and og:image. SVG is deliberately excluded because it can carry script."
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Display title for the outline.",
+            "maxGraphemes": 200
+          },
+          "imageAlt": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Alt text for image. Required whenever image is present; enforced by the application."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "When the outline was created."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 3000,
+            "description": "Longer summary of the outline.",
+            "maxGraphemes": 600
+          },
+          "contributors": {
+            "type": "array",
+            "items": {
+              "ref": "#contributor",
+              "type": "ref"
+            },
+            "description": "Identities whose records render inside this outline at this level and below, interleaved with the author's own. Absent inherits the nearest ancestor record's list; an empty array grants nobody and stops inheriting. How many are rendered is bounded by the application, not here. The Lexicon cannot express any of that, so the application enforces all of it."
+          }
+        }
+      },
+      "description": "Titles and describes an outline, and names who may contribute to it. Record key 'self' means the identity's whole forest; any other key names the subtree at 'root'. The key is 'any' rather than 'tid' because 'self' is not a TID."
+    },
+    "contributor": {
+      "type": "object",
+      "required": [
+        "did"
+      ],
+      "properties": {
+        "did": {
+          "type": "string",
+          "format": "did",
+          "description": "The contributing identity. A DID and never a handle: a handle is a lease, and a grant that followed one would move when the name did."
+        }
+      },
+      "description": "One identity admitted to this level. An object rather than a bare DID string so an entry can gain a field — a role, a colour, a grant timestamp — without a breaking change."
+    }
+  },
+  "$type": "com.atproto.lexicon.schema",
+  "lexicon": 1
+}

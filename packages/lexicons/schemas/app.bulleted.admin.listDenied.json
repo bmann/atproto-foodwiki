@@ -1,0 +1,92 @@
+{
+  "id": "app.bulleted.admin.listDenied",
+  "defs": {
+    "main": {
+      "type": "query",
+      "errors": [
+        {
+          "name": "AdminDisabled",
+          "description": "No administrative credential is configured, so the administrative surface does not exist."
+        }
+      ],
+      "output": {
+        "schema": {
+          "type": "object",
+          "required": [
+            "entries"
+          ],
+          "properties": {
+            "cursor": {
+              "type": "string",
+              "description": "Pass back as cursor for the next page. Absent at the end."
+            },
+            "entries": {
+              "type": "array",
+              "items": {
+                "ref": "#entry",
+                "type": "ref"
+              }
+            }
+          }
+        },
+        "encoding": "application/json"
+      },
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "default": 50,
+            "maximum": 200,
+            "minimum": 1,
+            "description": "Entries per page."
+          },
+          "cursor": {
+            "type": "string",
+            "description": "The cursor from the previous page. Encodes the created-at instant and the value together, so an entry added mid-scan can neither appear twice nor be skipped."
+          }
+        }
+      },
+      "description": "Page through the appview's denylist, newest first. Requires the administrative credential. You cannot operate a list you cannot read: without this, the only way to audit a takedown is to open the database."
+    },
+    "entry": {
+      "type": "object",
+      "required": [
+        "value",
+        "kind",
+        "createdBy",
+        "createdAt"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "description": "The kind derived from the value when it was added.",
+          "knownValues": [
+            "did",
+            "aturi",
+            "pds",
+            "cid"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "description": "The denied value, as stored."
+        },
+        "comment": {
+          "type": "string",
+          "description": "The free-text moderation note, if one was given."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "datetime"
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "The administrative identifier that added the entry. Never caller-supplied."
+        }
+      }
+    }
+  },
+  "$type": "com.atproto.lexicon.schema",
+  "lexicon": 1
+}

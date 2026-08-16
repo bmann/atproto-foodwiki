@@ -1,0 +1,73 @@
+{
+  "id": "app.bulleted.admin.undeny",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "input": {
+        "schema": {
+          "type": "object",
+          "required": [
+            "value"
+          ],
+          "properties": {
+            "value": {
+              "type": "string",
+              "maxLength": 2048,
+              "description": "The value to remove. Normalized the same way it was on the way in, so a PDS endpoint written with a trailing slash still matches."
+            }
+          }
+        },
+        "encoding": "application/json"
+      },
+      "errors": [
+        {
+          "name": "NotDenied",
+          "description": "The value is not on the denylist. Distinguished from success on purpose: 'it was already removed' and 'you typed it differently from the way it was stored' are otherwise indistinguishable to the caller."
+        },
+        {
+          "name": "AdminDisabled",
+          "description": "No administrative credential is configured, so the administrative surface does not exist."
+        }
+      ],
+      "output": {
+        "schema": {
+          "type": "object",
+          "required": [
+            "value",
+            "kind",
+            "restoration"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "description": "The kind the entry had.",
+              "knownValues": [
+                "did",
+                "aturi",
+                "pds",
+                "cid"
+              ]
+            },
+            "value": {
+              "type": "string",
+              "description": "The value as stored."
+            },
+            "restoration": {
+              "type": "string",
+              "description": "How the content comes back, which depends entirely on the kind. backfillOnView: the repository has zero rows, so the next view is an ordinary first view and backfill returns the content by itself. refetchEnqueued: an aturi undeny, where the repository still has all its other rows and NOTHING would ever trigger a backfill, so a targeted com.atproto.repo.getRecord has been queued. immediate: a cid undeny, where the record was never removed and the blob returns on the next cache miss.",
+              "knownValues": [
+                "backfillOnView",
+                "refetchEnqueued",
+                "immediate"
+              ]
+            }
+          }
+        },
+        "encoding": "application/json"
+      },
+      "description": "Remove a value from the appview's denylist and rebuild the membership filter. Requires the administrative credential. A denylist with no removal path means one mistyped DID is permanent. Undeny does NOT restore rows a nuke removed; the restoration field says what brings the content back, if anything does."
+    }
+  },
+  "$type": "com.atproto.lexicon.schema",
+  "lexicon": 1
+}

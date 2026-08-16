@@ -1,0 +1,44 @@
+{
+  "id": "app.bulleted.commentPolicy",
+  "defs": {
+    "main": {
+      "key": "any",
+      "type": "record",
+      "record": {
+        "type": "object",
+        "required": [
+          "allow",
+          "createdAt"
+        ],
+        "properties": {
+          "root": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "The node this policy governs, along with its descendants. Absent means the whole repository; present if and only if the record key is not 'self'. The Lexicon cannot express that conditional, so the application enforces it — the same rule app.bulleted.outline follows."
+          },
+          "allow": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 64,
+              "description": "'mentioned' grants permission to every identity mentioned in this bullet or in any bullet above it. knownValues is open so a later rule can be added without a breaking change.",
+              "knownValues": [
+                "mentioned"
+              ]
+            },
+            "maxLength": 16,
+            "description": "Rules granting permission to comment. An empty array closes comments, which is how a level turns off a policy it would otherwise inherit; a rule this app does not know grants nothing rather than everything."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "When the policy was written."
+          }
+        }
+      },
+      "description": "Who may comment on a bullet and on the bullets beneath it. Record key 'self' is the repository's default; any other key names the node at 'root', and applies to that node and its descendants. The absence of any policy means nobody may comment, so silence is the closed state."
+    }
+  },
+  "$type": "com.atproto.lexicon.schema",
+  "lexicon": 1
+}

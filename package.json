@@ -6,5 +6,12 @@
 	"packageManager": "npm@11.17.0",
 	"workspaces": [
 		"packages/*"
-	]
+	],
+	"devDependencies": {
+		"@atcute/atproto": "^4.0.4",
+		"@atcute/bluesky": "^4.0.18",
+		"@types/node": "^26.2.0",
+		"typescript": "^7.0.2",
+		"vitest": "^4.1.10"
+	}
 }

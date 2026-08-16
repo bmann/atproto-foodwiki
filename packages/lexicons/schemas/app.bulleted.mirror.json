@@ -1,0 +1,42 @@
+{
+  "id": "app.bulleted.mirror",
+  "defs": {
+    "main": {
+      "key": "tid",
+      "type": "record",
+      "record": {
+        "type": "object",
+        "required": [
+          "original",
+          "sortKey",
+          "createdAt"
+        ],
+        "properties": {
+          "parent": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "The node this mirror hangs under. Absent means top level."
+          },
+          "sortKey": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Fractional index ordering this mirror among its siblings."
+          },
+          "original": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "The node being mirrored. A bare AT-URI rather than a strongRef, because a mirror must track the live bullet including later edits; a strongRef would pin a CID and freeze the content."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "When the mirror was created."
+          }
+        }
+      },
+      "description": "A live reference rendering another node's subtree in place."
+    }
+  },
+  "$type": "com.atproto.lexicon.schema",
+  "lexicon": 1
+}

@@ -1,0 +1,240 @@
+{
+  "id": "app.bulleted.getOutline",
+  "defs": {
+    "main": {
+      "type": "query",
+      "errors": [
+        {
+          "name": "NotFound",
+          "description": "No such identity in this appview, or no such bullet in it. Also the answer for a record this appview has been asked to withhold: a status meaning 'this exists but is denied' is a way to enumerate the denylist."
+        }
+      ],
+      "output": {
+        "schema": {
+          "type": "object",
+          "required": [
+            "did",
+            "nodes",
+            "truncated"
+          ],
+          "properties": {
+            "did": {
+              "type": "string",
+              "format": "did",
+              "description": "The identity this outline belongs to, echoed back."
+            },
+            "root": {
+              "ref": "#node",
+              "type": "ref",
+              "description": "The zoomed bullet itself, so a caller can title the level without a second request. Absent when the whole outline was asked for."
+            },
+            "stop": {
+              "type": "string",
+              "description": "Which bound ended the walk. Present alongside truncated on purpose: one boolean is what most callers want, and a caller deciding whether to ask again with a larger depth needs to know which limit it hit.",
+              "knownValues": [
+                "complete",
+                "depth",
+                "limit"
+              ]
+            },
+            "nodes": {
+              "type": "array",
+              "items": {
+                "ref": "#node",
+                "type": "ref"
+              },
+              "description": "Pre-order, siblings in sortKey order. Flat, not nested: parentage is in each node's parent field, exactly as it is in the records themselves."
+            },
+            "handle": {
+              "type": "string",
+              "format": "handle",
+              "description": "The handle this appview last observed for did. Absent when none has been observed. Never resolved on demand, so it may lag the network and must not be treated as authoritative."
+            },
+            "outline": {
+              "ref": "#outline",
+              "type": "ref",
+              "description": "The app.bulleted.outline record in effect at this level. It may have been written at an ancestor rather than here; uri says which, and there is deliberately no separate inherited flag because the URI already answers it."
+            },
+            "truncated": {
+              "type": "boolean",
+              "description": "Whether anything was left out. True whenever stop is not 'complete'."
+            }
+          }
+        },
+        "encoding": "application/json"
+      },
+      "parameters": {
+        "type": "params",
+        "required": [
+          "did"
+        ],
+        "properties": {
+          "did": {
+            "type": "string",
+            "format": "did",
+            "description": "The identity whose outline to read. A DID and never a handle: a handle is a lease on a name, and resolving one here would make this endpoint an open resolver somebody else pays for."
+          },
+          "node": {
+            "type": "string",
+            "description": "Record key of the bullet to zoom into. Absent means the whole outline. The record key rather than an AT-URI, matching /public/{did}/{rkey}: the identity is already named by did, and two fields that can disagree about it is a bug waiting to be written."
+          },
+          "depth": {
+            "type": "integer",
+            "default": 3,
+            "maximum": 5,
+            "minimum": 1,
+            "description": "Levels below the root to return; 1 is the root's children only. Clamped rather than rejected, so a value outside the range is answered with the nearest one in range."
+          },
+          "limit": {
+            "type": "integer",
+            "default": 10,
+            "maximum": 100,
+            "minimum": 1,
+            "description": "Ceiling on nodes returned across ALL levels, not per level. Clamped rather than rejected. A per-level reading would make depth 5 with limit 100 a five-hundred-node answer to a request that said one hundred."
+          }
+        }
+      },
+      "description": "The public outline for an identity, optionally zoomed to one bullet. Answers from this appview's index of public records; it does not read the identity's PDS. No authentication, because everything here is already public."
+    },
+    "node": {
+      "type": "object",
+      "required": [
+        "uri",
+        "cid",
+        "rkey",
+        "did",
+        "sortKey",
+        "text"
+      ],
+      "properties": {
+        "cid": {
+          "type": "string",
+          "format": "cid",
+          "description": "The record CID as this appview last indexed it."
+        },
+        "did": {
+          "type": "string",
+          "format": "did",
+          "description": "The repository this record lives in. Usually the identity the request named, and NOT always: an outline whose app.bulleted.outline admits contributors answers with their records too, rendered in place among the author's own. Read this rather than parsing the authority out of uri."
+        },
+        "uri": {
+          "type": "string",
+          "format": "at-uri",
+          "description": "The record's own AT-URI."
+        },
+        "note": {
+          "type": "string",
+          "description": "The body of this bullet's app.bulleted.note, if it has one. Co-keyed with the bullet by the parallel-key rule, so it needs no URI of its own here."
+        },
+        "rkey": {
+          "type": "string",
+          "description": "The record key."
+        },
+        "text": {
+          "type": "string",
+          "description": "The bullet's text, unrendered."
+        },
+        "facets": {
+          "type": "array",
+          "items": {
+            "ref": "app.bsky.richtext.facet",
+            "type": "ref"
+          },
+          "description": "Rich text annotations over text, as stored. Byte ranges, so they index text as UTF-8."
+        },
+        "layout": {
+          "type": "string",
+          "description": "How the bullet renders, verbatim as stored. An open set: a value written by a later version arrives unchanged rather than folded onto bullet.",
+          "knownValues": [
+            "bullet",
+            "todo",
+            "h1",
+            "h2",
+            "h3",
+            "codeBlock",
+            "quoteBlock"
+          ]
+        },
+        "mirror": {
+          "ref": "#mirror",
+          "type": "ref"
+        },
+        "parent": {
+          "type": "string",
+          "format": "at-uri",
+          "description": "The bullet this one hangs under. Absent means top level of the identity's outline, which is not the same as top level of this response — a zoomed answer's rows all carry a parent."
+        },
+        "display": {
+          "type": "string",
+          "description": "Whether this row's children are shown when a reader has no preference of their own, verbatim as stored. Absent means expanded, as does any unrecognized value. Absent on a mirror, which renders another repository's subtree and has no hint of its own.",
+          "knownValues": [
+            "expanded",
+            "collapsed"
+          ]
+        },
+        "sortKey": {
+          "type": "string",
+          "description": "Fractional index ordering this row among its siblings."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "datetime"
+        },
+        "childCount": {
+          "type": "integer",
+          "description": "How many children this bullet has, whether or not they are in this response. Without it a leaf and a bullet cut off by depth or limit are the same absence."
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "datetime",
+          "description": "Presence means completed; there is no separate boolean anywhere in this system."
+        }
+      },
+      "description": "One row of an outline: an app.bulleted.node, or an app.bulleted.mirror standing in a sibling group beside them."
+    },
+    "mirror": {
+      "type": "object",
+      "required": [
+        "original"
+      ],
+      "properties": {
+        "original": {
+          "type": "string",
+          "format": "at-uri",
+          "description": "The app.bulleted.node this mirror renders."
+        }
+      },
+      "description": "Present when this row is an app.bulleted.mirror rather than a node. The row's uri addresses the mirror record in this identity's repository; original names the bullet it points at, which lives in another repository and is NOT expanded here. Ask for that identity's outline to read it."
+    },
+    "outline": {
+      "type": "object",
+      "required": [
+        "uri"
+      ],
+      "properties": {
+        "uri": {
+          "type": "string",
+          "format": "at-uri",
+          "description": "The outline record this came from. Compare its rkey against the level to tell an inherited title from one written here."
+        },
+        "image": {
+          "type": "string",
+          "format": "uri",
+          "description": "Absolute URL of the preview image, served through this appview's blob proxy rather than as a raw blob reference, because a caller cannot fetch a blob without also knowing the PDS."
+        },
+        "title": {
+          "type": "string"
+        },
+        "imageAlt": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "description": "An app.bulleted.outline record, as it applies to the level that was asked for."
+    }
+  },
+  "$type": "com.atproto.lexicon.schema",
+  "lexicon": 1
+}

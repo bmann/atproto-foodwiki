@@ -1,0 +1,77 @@
+{
+  "id": "app.bulleted.node",
+  "defs": {
+    "main": {
+      "key": "tid",
+      "type": "record",
+      "record": {
+        "type": "object",
+        "required": [
+          "text",
+          "sortKey",
+          "createdAt"
+        ],
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 10000,
+            "description": "The bullet's content.",
+            "maxGraphemes": 2000
+          },
+          "facets": {
+            "type": "array",
+            "items": {
+              "ref": "app.bsky.richtext.facet",
+              "type": "ref"
+            },
+            "description": "Rich text annotations over text."
+          },
+          "layout": {
+            "type": "string",
+            "description": "How the bullet renders. Defaults to bullet. An open set, so values added by later versions do not fail validation.",
+            "knownValues": [
+              "bullet",
+              "todo",
+              "h1",
+              "h2",
+              "h3",
+              "codeBlock",
+              "quoteBlock"
+            ]
+          },
+          "parent": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "The parent node. Absent means top level. A bare AT-URI rather than a strongRef, because a strongRef pins a CID and the parent's CID changes on every edit to its text."
+          },
+          "display": {
+            "type": "string",
+            "description": "Whether this bullet's children are shown when a reader has no preference of their own. Treat an absent value as \"expanded\". A reader's own choice always wins; this is what a client shows before they have made one. An open set, so values added by later versions do not fail validation.",
+            "knownValues": [
+              "expanded",
+              "collapsed"
+            ]
+          },
+          "sortKey": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Fractional index ordering this node among its siblings. Kept separate from the record key because record keys are TIDs, which sort by creation time and cannot change without recreating the record and breaking every inbound reference."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "When the bullet was created."
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Presence means completed; there is no separate boolean. Only meaningful for todo layout."
+          }
+        }
+      },
+      "description": "A single bullet in an outline. Parentage is expressed only by a child pointing up at its parent; there is no children array."
+    }
+  },
+  "$type": "com.atproto.lexicon.schema",
+  "lexicon": 1
+}

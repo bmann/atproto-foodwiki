@@ -1,0 +1,15 @@
+{
+  "name": "@foodwiki/core",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@atcute/client": "^5.1.1",
+    "@atcute/identity-resolver": "^2.0.1",
+    "@atcute/identity-resolver-node": "^2.0.1",
+    "@foodwiki/lexicons": "0.1.0"
+  }
+}

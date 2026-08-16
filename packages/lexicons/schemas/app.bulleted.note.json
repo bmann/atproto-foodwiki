@@ -1,0 +1,46 @@
+{
+  "id": "app.bulleted.note",
+  "defs": {
+    "main": {
+      "key": "tid",
+      "type": "record",
+      "record": {
+        "type": "object",
+        "required": [
+          "subject",
+          "text",
+          "createdAt"
+        ],
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 100000,
+            "description": "The note's content.",
+            "maxGraphemes": 20000
+          },
+          "facets": {
+            "type": "array",
+            "items": {
+              "ref": "app.bsky.richtext.facet",
+              "type": "ref"
+            },
+            "description": "Rich text annotations over text."
+          },
+          "subject": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "The node this note supplements. Must be an app.bulleted.node in the same repository with the same rkey as this record. Derivable from this record's own address, but stored anyway so a third-party app encountering the record in isolation can tell what it supplements."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "When the note was created."
+          }
+        }
+      },
+      "description": "Supplemental text for a node. Shares the node's record key and repository, so the note for at://{did}/app.bulleted.node/{rkey} lives at at://{did}/app.bulleted.note/{rkey}."
+    }
+  },
+  "$type": "com.atproto.lexicon.schema",
+  "lexicon": 1
+}

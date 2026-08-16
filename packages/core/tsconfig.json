@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": { "types": ["@atcute/lexicons", "@atcute/bluesky", "@atcute/atproto"] },
+  "include": ["src/**/*.ts"]
+}

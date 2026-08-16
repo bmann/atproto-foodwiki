@@ -1,0 +1,86 @@
+{
+  "id": "app.bulleted.admin.deny",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "input": {
+        "schema": {
+          "type": "object",
+          "required": [
+            "value"
+          ],
+          "properties": {
+            "nuke": {
+              "type": "boolean",
+              "default": true,
+              "description": "Remove what is already indexed. True by default and the reason this endpoint exists: adding to the list only stops future indexing. Pass false to pre-emptively block something that has not been indexed yet."
+            },
+            "value": {
+              "type": "string",
+              "maxLength": 2048,
+              "description": "What to deny. The kind is DERIVED from this value and is never supplied by the caller: did: is a repository, at:// is one record, http:// or https:// is a PDS endpoint, and a canonical CIDv1 is a blob. A value matching none of the four is a 400 rather than a guess."
+            },
+            "comment": {
+              "type": "string",
+              "maxLength": 2048,
+              "description": "Free-text moderation note. Not the audit field: who performed the action is taken from the administrative credential and recorded separately, because a moderation log has to answer 'who removed this and when' as a queryable field rather than as a convention about comment text."
+            }
+          }
+        },
+        "encoding": "application/json"
+      },
+      "errors": [
+        {
+          "name": "UnknownKind",
+          "description": "The value is not a DID, an AT-URI, an http(s) endpoint, or a canonical CIDv1."
+        },
+        {
+          "name": "AdminDisabled",
+          "description": "No administrative credential is configured, so the administrative surface does not exist."
+        }
+      ],
+      "output": {
+        "schema": {
+          "type": "object",
+          "required": [
+            "value",
+            "kind",
+            "nuked"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "description": "The kind derived from the value.",
+              "knownValues": [
+                "did",
+                "aturi",
+                "pds",
+                "cid"
+              ]
+            },
+            "blobs": {
+              "type": "integer",
+              "description": "Cached blob files removed."
+            },
+            "nuked": {
+              "type": "integer",
+              "description": "Rows removed from the appview. Zero when nuke was false."
+            },
+            "repos": {
+              "type": "integer",
+              "description": "Repositories emptied. One for a did nuke; zero or more for a pds nuke."
+            },
+            "value": {
+              "type": "string",
+              "description": "The value as stored. A PDS endpoint is normalized to one spelling, so this may differ from the input."
+            }
+          }
+        },
+        "encoding": "application/json"
+      },
+      "description": "Add a value to the appview's denylist and, by default, remove what it has already indexed. Requires the administrative credential. Adding to the list stops future indexing; nuking removes what is already there, which is why nuke defaults to true."
+    }
+  },
+  "$type": "com.atproto.lexicon.schema",
+  "lexicon": 1
+}

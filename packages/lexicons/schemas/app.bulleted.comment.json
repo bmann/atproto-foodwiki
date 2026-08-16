@@ -1,0 +1,45 @@
+{
+  "id": "app.bulleted.comment",
+  "defs": {
+    "main": {
+      "key": "tid",
+      "type": "record",
+      "record": {
+        "type": "object",
+        "required": [
+          "subject",
+          "text",
+          "createdAt"
+        ],
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 10000,
+            "description": "The comment's content."
+          },
+          "facets": {
+            "type": "array",
+            "items": {
+              "ref": "app.bsky.richtext.facet",
+              "type": "ref"
+            },
+            "description": "Rich text annotations over text."
+          },
+          "subject": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "The node this comment is about."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "When the comment was created."
+          }
+        }
+      },
+      "description": "A comment on a node, owned by its author."
+    }
+  },
+  "$type": "com.atproto.lexicon.schema",
+  "lexicon": 1
+}

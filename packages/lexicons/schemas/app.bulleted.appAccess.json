@@ -1,0 +1,31 @@
+{
+  "id": "app.bulleted.appAccess",
+  "defs": {
+    "main": {
+      "type": "permission-set",
+      "title": "Bulleted",
+      "detail": "Read and write your outlines, bullets, and notes.",
+      "permissions": [
+        {
+          "type": "permission",
+          "action": [
+            "create",
+            "update",
+            "delete"
+          ],
+          "resource": "repo",
+          "collection": [
+            "app.bulleted.node",
+            "app.bulleted.note",
+            "app.bulleted.outline",
+            "app.bulleted.mirror",
+            "app.bulleted.comment",
+            "app.bulleted.commentPolicy"
+          ]
+        }
+      ]
+    }
+  },
+  "$type": "com.atproto.lexicon.schema",
+  "lexicon": 1
+}
