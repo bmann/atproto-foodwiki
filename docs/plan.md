@@ -71,3 +71,38 @@ Users' PDS (first: foodwiki.bmann.ca on shimeji.us-east.host.bsky.network)
 - OAuth scopes finalization (permission sets vs transition:generic)
 - HappyView instance URL/name
 - Blob media (images in outlines) — later
+
+## Current status (as of 2026-08-16)
+
+### Deployed
+- **HappyView (production)**: https://atproto-foodwiki-production.up.railway.app (Railway, v2.13.0 via our `deploy/happyview/Dockerfile`). Health OK, dashboard OK, Postgres.
+- **Version note**: dashboard shows "0.1.0" — that's HappyView's internal version string; the release is v2.13.0. Not a problem.
+- **Admin / super user**: `bmann.ca` (`did:plc:2cxgdrgtsmrbqnjkwyplmp43`), logged in via dashboard. **API key**: `hv_fc5ea2be45df401269e8e7776645f556` (created in Dashboard → Access → API Keys). Key scopes: full admin for provisioning.
+- **Service identity**: `foodwiki.bmann.ca` (`did:plc:kwclrfytscd4udqzmsv42rj3`), mode `attach_account`, setup complete. This account represents the appview.
+- **Web app domain (BACKLOG)**: `foodwiki.bmann.ca` will be the app domain, added to Railway later.
+
+### Lexicons provisioned (all `source: network` — auto-update from bulleted.app)
+- Record: `app.bulleted.node`, `app.bulleted.outline`, `app.bulleted.note`, `app.bulleted.mirror`, `app.bulleted.comment`, `app.bulleted.commentPolicy`
+- Query: `app.bulleted.getOutline` (target_collection `app.bulleted.node`)
+- Permission sets: `app.bulleted.authFull`, `app.bulleted.appAccess` (present on network via Lexicon Garden; added manually if needed for OAuth scopes)
+- `getOutline` responds publicly (`{"records":[]}` — foodwiki.bmann.ca has no `app.bulleted.*` records yet)
+- **Backfill**: currently `false` on record lexicons (network-add path). Zero existing records so fine; trigger `/admin/backfill` if we later add historical records. Jetstream live-indexes new ones.
+
+### Settings
+- `feature.spaces_enabled=true` (HappyView Spaces for permissioned data — backlog, but flag on)
+- `space_cid_backfill_completed_at` set (space plumbing already migrated)
+
+### Repo
+- GitHub: https://github.com/bmann/atproto-foodwiki (public, main)
+- 6 commits through 01165ff. Monorepo: `packages/lexicons` (Bulleted schemas + generated atcute types), `packages/core` (@atcute client: getOutline, reads), `deploy/happyview` (Dockerfile mirror + compose + README), `scripts/` (check-happyview-upstream, validate-public-url, provision-happyview), `.github/workflows/happyview.yml` (drift check).
+- Local dev instance also runs HappyView in Docker (SQLite) at port 3000 (`docker compose -f deploy/happyview/docker-compose.dev.yml up -d`); PUBLIC_URL=127.0.0.1:3000 for dev; real OAuth requires public URL (Railway).
+- **CRITICAL**: `PUBLIC_URL` must be a full absolute URL with scheme (e.g. `https://atproto-foodwiki-production.up.railway.app`), no trailing slash/path, or HappyView panics at boot with `ClientMetadata(InvalidClientId)`. Guard: `scripts/validate-public-url.mjs`.
+
+### Known gaps / next (Phase 4+)
+- Web app (Phase 4): reads via `getOutline`, writes via OAuth + `com.atproto.repo.*` to user PDS. Food-focused outliner UI.
+- OAuth for the *web app*: need a public client_id + redirect on the app domain (foodwiki.bmann.ca later; for now dev via loopback or Railway app URL).
+- Structured recipes via `exchange.recipe` (backlog).
+- Port foodwiki.bmann.ca static TiddlyWiki content (backlog).
+- HappyView Spaces permissioned data (backlog; flag already enabled).
+- `foodwiki.bmann.ca` account currently has **zero** `app.bulleted.node` records — will be the first garden content once the web app can create records.
+
