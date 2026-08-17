@@ -86,8 +86,10 @@ forest — the permissive, obvious default.
 
 | Area | What's coming |
 |---|---|
-| **Auth & writes** | Sign in with your atproto account (OAuth) and **create/edit/delete bullets** from the web UI. Import into your repo with an app password. |
-| ~~FoodWiki root chooser~~ | ✅ **Shipped** (set/clear root per bullet; shareable `/user/<did>/<rkey>/` URLs; whole-account default). |
+| **Inline editing** | Edit bullet text in place (no prompt pop-ups). **[backlog]** |
+| **Settings page** | Dedicated page for choosing/clearing the FoodWiki root bullet. **[backlog]** |
+| **Auth & writes** | ✅ **Shipped** — sign in with your atproto account (OAuth) and add/edit/delete bullets, toggle todos, set your FoodWiki root. Import via app password is a backlog batch operation. |
+| ~~FoodWiki root chooser~~ | ✅ **Shipped** (set/clear root per bullet; shareable `/user/<did>/<rkey>/` URLs; whole-account default). **Polish backlog:** dedicated settings page for root choice. |
 | **Transclusion / mirrors** | Render a bullet from another account inside your outline (`app.bulleted.mirror`), e.g. a shared pantry or collaborator's recipe. |
 | **Structured recipes** | `exchange.recipe` records — typed ingredients, steps, servings — while staying inside the outline model. |
 | **Images & media** | Upload to your PDS, preview via the AppView's blob proxy. |
