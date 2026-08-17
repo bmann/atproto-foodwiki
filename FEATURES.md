@@ -56,6 +56,12 @@ account (`rkey: self` = whole forest; any other rkey = subtree rooted at `root`)
 outline record exists, or when the user hasn't chosen, FoodWiki shows the whole account
 forest — the permissive, obvious default.
 
+**What the user page shows:** when an account has NO `outline/self` record but exactly one
+subtree outline record (`outline/<rkey>` with a root), FoodWiki treats that root as the
+account's FoodWiki and shows its **children** as the garden's top level (the root bullet
+itself is the page title). When `outline/self` exists, the user page shows the whole
+forest and subtree URLs (`/user/<did>/<rkey>/`) zoom into a root's children.
+
 > **Status:** ✅ **shipped.** Open a bullet's “●” action to set it as your FoodWiki root
 > (writes `app.bulleted.outline/<rkey>` — the *subtree* record — with `root` = that bullet),
 > or “clear root” to return to whole-account mode (deletes the subtree record). Root views

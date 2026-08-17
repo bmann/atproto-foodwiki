@@ -55,6 +55,31 @@ export async function fetchOutlineRecord(did: string, rkey: string = 'self'): Pr
   };
 }
 
+/** List all outline records for a DID (public). Returns rkey → record. */
+export async function listOutlineRecords(did: string): Promise<Map<string, OutlineRecord>> {
+  const pds = await resolvePds(did);
+  const url = new URL(`${pds}/xrpc/com.atproto.repo.listRecords`);
+  url.searchParams.set('repo', did);
+  url.searchParams.set('collection', OUTLINE_COLLECTION);
+  url.searchParams.set('limit', '100');
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`listRecords failed (${res.status})`);
+  const body = (await res.json()) as { records?: { uri?: string; value?: Record<string, unknown> }[] };
+  const out = new Map<string, OutlineRecord>();
+  for (const r of body.records ?? []) {
+    const uri = r.uri ?? '';
+    const rkey = uri.slice(uri.lastIndexOf('/') + 1);
+    const v = r.value ?? {};
+    out.set(rkey, {
+      title: typeof v.title === 'string' ? v.title : undefined,
+      description: typeof v.description === 'string' ? v.description : undefined,
+      root: typeof v.root === 'string' ? v.root : undefined,
+      createdAt: typeof v.createdAt === 'string' ? v.createdAt : new Date().toISOString(),
+    });
+  }
+  return out;
+}
+
 /**
  * Write (create/update) an outline record.
  * - rkey 'self': whole-forest record; must NOT carry a `root`.

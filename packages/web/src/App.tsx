@@ -16,7 +16,7 @@ import {
 } from './lib/oauth';
 import { buildTree, type OutlineData, type OutlineRow, type OutlineTreeNode } from './lib/outline-tree';
 import { createBullet, putBullet, deleteBullet, midSortKey } from './lib/writes';
-import { fetchOutlineRecord, writeOutlineRecord, deleteOutlineRecord, type OutlineRecord } from './lib/root';
+import { fetchOutlineRecord, writeOutlineRecord, deleteOutlineRecord, listOutlineRecords, type OutlineRecord } from './lib/root';
 
 function rkeyFromUri(uri: string): string {
   return uri.slice(uri.lastIndexOf('/') + 1);
@@ -388,19 +388,35 @@ export function App() {
       }
       setData(res.data);
       // Which outline record is "in effect" at this level: 'self' = whole forest, else the subtree rkey.
-      const levelRkey = targetRkey && targetRkey !== 'self' ? targetRkey : 'self';
+      let levelRkey = targetRkey && targetRkey !== 'self' ? targetRkey : 'self';
       try {
-        const rec = await fetchOutlineRecord(finalDid, levelRkey);
+        let all = await listOutlineRecords(finalDid).catch(() => new Map<string, OutlineRecord>());
+        let rec = await fetchOutlineRecord(finalDid, levelRkey).catch(() => null);
         // For a subtree, the record may have been written at the ancestor (self) — inherit its title/desc.
         let recInherited: OutlineRecord | null = rec;
         if (levelRkey !== 'self' && !rec) {
           recInherited = await fetchOutlineRecord(finalDid, 'self').catch(() => null);
         }
-        setOutlineRec(recInherited);
+        // FoodWiki-root convention: if the user has exactly ONE subtree outline record
+        // (an rkey != 'self' with a root), that IS their FoodWiki root. The user page
+        // (self level) then honors it, showing the root's children as the garden.
+        let effectiveRoot: string | null = null;
+        if (levelRkey === 'self' && !all.has('self')) {
+          // No whole-forest record: the single subtree outline record is the user's FoodWiki root.
+          const subs = [...all.entries()].filter(([rk]) => rk !== 'self');
+          if (subs.length === 1 && subs[0]![1].root) {
+            effectiveRoot = subs[0]![1].root!;
+            levelRkey = subs[0]![0];
+            // reload the record for that level (title/desc inherit from the subtree)
+            const subRec = await fetchOutlineRecord(finalDid, levelRkey).catch(() => null);
+            if (subRec) recInherited = subRec;
+          }
+        }
         setOutlineRkey(levelRkey);
+        setOutlineRec(recInherited);
         // Scoping: subtree record's root, else the zoomed bullet itself (URL zoom even without a record).
-        let scope: string | null = null;
-        if (levelRkey !== 'self') {
+        let scope: string | null = effectiveRoot ?? null;
+        if (levelRkey !== 'self' && !scope) {
           const bullet = res.data.rows.find((r) => r.uri.endsWith('/' + levelRkey));
           scope = rec?.root ?? (bullet?.uri ?? null);
         }
@@ -408,7 +424,7 @@ export function App() {
       } catch {
         setOutlineRec(null);
         setOutlineRkey(levelRkey);
-        setRootUri(levelRkey === 'self' ? null : null);
+        setRootUri(null);
       }
       return res.data;
     } catch (e) {
@@ -843,6 +859,12 @@ export function App() {
   const rootRow = rootUri ? (data?.rows.find((r) => r.uri === rootUri) ?? null) : null;
   const selectedRow = selectedUri ? (data?.rows.find((r) => r.uri === selectedUri) ?? null) : null;
 
+  // When a root is set, the root bullet is the page's title (heading); the garden's
+  // top level is the root's CHILDREN, not the root itself.
+  const tree = buildTree(scopedRows);
+  const rootNode = rootUri ? (tree.find((n) => n.row.uri === rootUri) ?? null) : null;
+  const topLevel = rootNode ? rootNode.children : tree;
+
   /** Sanitize + guard before a write. */
   function plainText(t: string): string {
     return t.replace(/\r\n/g, '\n').trim();
@@ -1036,7 +1058,7 @@ export function App() {
               </div>
             ) : (
               <ul className="nodes">
-                {buildTree(scopedRows).map((n) => (
+                {topLevel.map((n) => (
                   <NodeView
                     key={n.row.uri}
                     node={n}
