@@ -75,7 +75,7 @@ Users' PDS (first: foodwiki.bmann.ca on shimeji.us-east.host.bsky.network)
 ## Current status (as of 2026-08-16)
 
 ### Deployed
-- **HappyView (production)**: https://happyview-atproto-foodwiki-production.up.railway.app (Railway, v2.13.0 via our `deploy/happyview/Dockerfile`). Health OK, dashboard OK, Postgres.
+- **HappyView (production)**: https://happyview-atproto-foodwiki-production.up.railway.app (Railway, v2.13.0 via our `deploy/happyview/Dockerfile`). Health OK, dashboard OK, Postgres. **Web app (production)**: https://web-production-eb82d.up.railway.app (Vite+React SPA, nginx).
 - **Version note**: dashboard shows "0.1.0" — that's HappyView's internal version string; the release is v2.13.0. Not a problem.
 - **Admin / super user**: `bmann.ca` (`did:plc:2cxgdrgtsmrbqnjkwyplmp43`), logged in via dashboard. **API key**: `hv_fc5ea2be45df401269e8e7776645f556` (created in Dashboard → Access → API Keys). Key scopes: full admin for provisioning.
 - **Service identity**: `foodwiki.bmann.ca` (`did:plc:kwclrfytscd4udqzmsv42rj3`), mode `attach_account`, setup complete. This account represents the appview.
@@ -85,7 +85,7 @@ Users' PDS (first: foodwiki.bmann.ca on shimeji.us-east.host.bsky.network)
 - Record: `app.bulleted.node`, `app.bulleted.outline`, `app.bulleted.note`, `app.bulleted.mirror`, `app.bulleted.comment`, `app.bulleted.commentPolicy`
 - Query: `app.bulleted.getOutline` (target_collection `app.bulleted.node`)
 - Permission sets: `app.bulleted.authFull`, `app.bulleted.appAccess` (present on network via Lexicon Garden; added manually if needed for OAuth scopes)
-- `getOutline` responds publicly (`{"records":[]}` — foodwiki.bmann.ca has no `app.bulleted.*` records yet)
+- `getOutline` responds publicly and is fully live — bmann.ca's 10-node outline + the Bulleted publisher's 75-node outline render in the web app
 - **Backfill**: ✅ **network-wide backfill completed** (2026-08-16): 61 repos, 685 `app.bulleted.*` records, 0 errors. Jetstream now live-indexes new records. Trigger new backfills via `POST /admin/backfill` (empty body = all collections/all repos).
 
 ### Settings
@@ -93,8 +93,9 @@ Users' PDS (first: foodwiki.bmann.ca on shimeji.us-east.host.bsky.network)
 - `space_cid_backfill_completed_at` set (space plumbing already migrated)
 
 ### Repo
-- GitHub: https://github.com/bmann/atproto-foodwiki (public, main)
-- 6 commits through 01165ff. Monorepo: `packages/lexicons` (Bulleted schemas + generated atcute types), `packages/core` (@atcute client: getOutline, reads), `deploy/happyview` (Dockerfile mirror + compose + README), `scripts/` (check-happyview-upstream, validate-public-url, provision-happyview), `.github/workflows/happyview.yml` (drift check).
+- GitHub: https://github.com/bmann/atproto-foodwiki (public, main). All merges via PR; branch protection: `typecheck-build` CI required, linear history, no force-push/delete. (Reviews off for solo; re-enable with collaborators.)
+- Monorepo: `packages/lexicons` (Bulleted schemas + generated atcute types), `packages/core` (@atcute client: getOutline, reads), `packages/web` (Vite+React SPA: public reads, OAuth login, bullet + outline writes), `deploy/happyview` (Dockerfile mirror + compose + README + railway.json), `deploy/web` (nginx SPA Dockerfile + railway.json + README), `scripts/` (provisioner, upstream drift check, PUBLIC_URL guard), `.github/workflows/` (happyview.yml drift check, check.yml typecheck/build), `FEATURES.md` (product spec + backlog).
+- Railway config-as-code: `deploy/happyview/railway.json` + `deploy/web/railway.json` (schema-validated; builder DOCKERFILE + dockerfilePath). Auto-deploys on git commit; PR preview environments enabled.
 - Local dev instance also runs HappyView in Docker (SQLite) at port 3000 (`docker compose -f deploy/happyview/docker-compose.dev.yml up -d`); PUBLIC_URL=127.0.0.1:3000 for dev; real OAuth requires public URL (Railway).
 - **CRITICAL**: `PUBLIC_URL` must be a full absolute URL with scheme (e.g. `https://happyview-atproto-foodwiki-production.up.railway.app`), no trailing slash/path, or HappyView panics at boot with `ClientMetadata(InvalidClientId)`. Guard: `scripts/validate-public-url.mjs`.
 
@@ -107,5 +108,5 @@ Users' PDS (first: foodwiki.bmann.ca on shimeji.us-east.host.bsky.network)
 - Structured recipes via `exchange.recipe` (backlog).
 - Port foodwiki.bmann.ca static TiddlyWiki content (backlog).
 - HappyView Spaces permissioned data (backlog; flag already enabled).
-- `foodwiki.bmann.ca` account currently has **zero** `app.bulleted.node` records — will be the first garden content once the web app can create records.
+- `foodwiki.bmann.ca` is the appview/service-identity account (mode `attach_account`); the food garden content will live under user accounts (e.g. bmann.ca) or a dedicated food account later.
 
