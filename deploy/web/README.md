@@ -25,7 +25,7 @@ restart policy — no Dockerfile path needed in the dashboard.
 
    | Var | Value |
    |---|---|
-   | `VITE_APPVIEW_URL` | `https://atproto-foodwiki-production.up.railway.app` (the HappyView service URL) |
+   | `VITE_APPVIEW_URL` | `https://happyview-atproto-foodwiki-production.up.railway.app` (the HappyView service URL) |
 
    Vite env vars are baked **at build time** — redeploy after changing them.
 
@@ -61,7 +61,7 @@ per PR:
 
 | Service | Var | Example |
 |---|---|---|
-| happyview | `PUBLIC_URL` | `https://atproto-foodwiki-production.up.railway.app` (absolute, no trailing slash — else boot panic) |
+| happyview | `PUBLIC_URL` | `https://happyview-atproto-foodwiki-production.up.railway.app` (absolute, no trailing slash — else boot panic) |
 | happyview | `DATABASE_URL` | Railway Postgres URL |
 | happyview | `SESSION_SECRET` / `TOKEN_ENCRYPTION_KEY` | long random values (already in `.railway-secrets.env`) |
 | happyview | `PORT` | `3000` |

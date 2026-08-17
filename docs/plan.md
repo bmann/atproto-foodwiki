@@ -75,7 +75,7 @@ Users' PDS (first: foodwiki.bmann.ca on shimeji.us-east.host.bsky.network)
 ## Current status (as of 2026-08-16)
 
 ### Deployed
-- **HappyView (production)**: https://atproto-foodwiki-production.up.railway.app (Railway, v2.13.0 via our `deploy/happyview/Dockerfile`). Health OK, dashboard OK, Postgres.
+- **HappyView (production)**: https://happyview-atproto-foodwiki-production.up.railway.app (Railway, v2.13.0 via our `deploy/happyview/Dockerfile`). Health OK, dashboard OK, Postgres.
 - **Version note**: dashboard shows "0.1.0" — that's HappyView's internal version string; the release is v2.13.0. Not a problem.
 - **Admin / super user**: `bmann.ca` (`did:plc:2cxgdrgtsmrbqnjkwyplmp43`), logged in via dashboard. **API key**: `hv_fc5ea2be45df401269e8e7776645f556` (created in Dashboard → Access → API Keys). Key scopes: full admin for provisioning.
 - **Service identity**: `foodwiki.bmann.ca` (`did:plc:kwclrfytscd4udqzmsv42rj3`), mode `attach_account`, setup complete. This account represents the appview.
@@ -96,7 +96,7 @@ Users' PDS (first: foodwiki.bmann.ca on shimeji.us-east.host.bsky.network)
 - GitHub: https://github.com/bmann/atproto-foodwiki (public, main)
 - 6 commits through 01165ff. Monorepo: `packages/lexicons` (Bulleted schemas + generated atcute types), `packages/core` (@atcute client: getOutline, reads), `deploy/happyview` (Dockerfile mirror + compose + README), `scripts/` (check-happyview-upstream, validate-public-url, provision-happyview), `.github/workflows/happyview.yml` (drift check).
 - Local dev instance also runs HappyView in Docker (SQLite) at port 3000 (`docker compose -f deploy/happyview/docker-compose.dev.yml up -d`); PUBLIC_URL=127.0.0.1:3000 for dev; real OAuth requires public URL (Railway).
-- **CRITICAL**: `PUBLIC_URL` must be a full absolute URL with scheme (e.g. `https://atproto-foodwiki-production.up.railway.app`), no trailing slash/path, or HappyView panics at boot with `ClientMetadata(InvalidClientId)`. Guard: `scripts/validate-public-url.mjs`.
+- **CRITICAL**: `PUBLIC_URL` must be a full absolute URL with scheme (e.g. `https://happyview-atproto-foodwiki-production.up.railway.app`), no trailing slash/path, or HappyView panics at boot with `ClientMetadata(InvalidClientId)`. Guard: `scripts/validate-public-url.mjs`.
 
 ### Known gaps / next (Phase 4+)
 - Web app (Phase 4): reads via `getOutline`, writes via OAuth + `com.atproto.repo.*` to user PDS. Food-focused outliner UI.

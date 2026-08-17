@@ -9,7 +9,7 @@ groceries, and food notes as a living, linkable outline.
 - **Client**: TypeScript web app (`@foodwiki/web`), `@atcute/*` packages.
 - **AppView**: [HappyView](https://happyview.dev) (Railway) — indexes `app.bulleted.*`
   from the network, serves public `getOutline`, admin UI.
-- **Live**: <https://atproto-foodwiki-production.up.railway.app> (HappyView/dashboard) and
+- **Live**: <https://happyview-atproto-foodwiki-production.up.railway.app> (HappyView/dashboard) and
   the web app at `/user/<handle-or-did>/` (e.g. `/user/bmann.ca/`).
 
 ## Product
