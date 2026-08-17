@@ -56,11 +56,10 @@ account (`rkey: self` = whole forest; any other rkey = subtree rooted at `root`)
 outline record exists, or when the user hasn't chosen, FoodWiki shows the whole account
 forest — the permissive, obvious default.
 
-> **Status:** the infrastructure supports both modes (the lexicon models "whole forest" vs
-> "subtree at root" precisely, and the reader normalizes either). The *chooser UI* —
-> "Set as my FoodWiki root" — is a planned in-app action. Until it ships, whole-account
-> mode applies to everyone, and a dedicated `app.bulleted.outline` record can already be
-> written by advanced users to scope a subtree.
+> **Status:** ✅ **shipped.** Sign in, open a bullet's “●” action to set it as your FoodWiki
+> root (writes `app.bulleted.outline/self` with `root` = that bullet), or “clear root” to
+> return to whole-account mode. Root views get their own shareable URL
+> (`/user/<did>/<rkey>/`).
 
 ---
 
@@ -88,7 +87,7 @@ forest — the permissive, obvious default.
 | Area | What's coming |
 |---|---|
 | **Auth & writes** | Sign in with your atproto account (OAuth) and **create/edit/delete bullets** from the web UI. Import into your repo with an app password. |
-| **FoodWiki root chooser** | "Set this bullet as my FoodWiki root" — the UI for whole-account vs root-bullet mode. |
+| ~~FoodWiki root chooser~~ | ✅ **Shipped** (set/clear root per bullet; shareable `/user/<did>/<rkey>/` URLs; whole-account default). |
 | **Transclusion / mirrors** | Render a bullet from another account inside your outline (`app.bulleted.mirror`), e.g. a shared pantry or collaborator's recipe. |
 | **Structured recipes** | `exchange.recipe` records — typed ingredients, steps, servings — while staying inside the outline model. |
 | **Images & media** | Upload to your PDS, preview via the AppView's blob proxy. |
