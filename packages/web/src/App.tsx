@@ -50,41 +50,46 @@ function NodeView({
   node,
   depth,
   signedInAs,
-  onAddChild,
+  selectedUri,
+  editingUri,
+  onSelect,
+  onEdit,
   onToggleTodo,
-  onDelete,
+  editingText,
+  onEditingText,
   onSaveEdit,
-  onSetRoot,
+  onCancelEdit,
+  onEnterFromEdit,
 }: {
   node: OutlineTreeNode;
   depth: number;
   signedInAs: string | null;
-  onAddChild: (parent: OutlineRow, text: string) => void;
+  selectedUri: string | null;
+  editingUri: string | null;
+  onSelect: (row: OutlineRow) => void;
+  onEdit: (row: OutlineRow) => void;
   onToggleTodo: (row: OutlineRow) => void;
-  onDelete: (row: OutlineRow) => void;
+  editingText: string;
+  onEditingText: (t: string) => void;
   onSaveEdit: (row: OutlineRow, text: string) => void;
-  onSetRoot: (row: OutlineRow) => void;
+  onCancelEdit: () => void;
+  /** Enter in the edit box: save current + insert a new sibling below (same level). */
+  onEnterFromEdit: (row: OutlineRow, text: string) => void;
 }) {
-  const { text, layout, completedAt } = node.row;
-  const mine = signedInAs && didFromUri(node.row.uri) === signedInAs;
-  const [editingText, setEditingText] = useState<string | null>(null);
-  const [addingText, setAddingText] = useState<string | null>(null);
+  const { row } = node;
+  const { text, layout, completedAt } = row;
+  const mine = signedInAs && didFromUri(row.uri) === signedInAs;
+  const selected = selectedUri === row.uri;
+  const editing = editingUri === row.uri;
   const cls = ['node'];
   if (layout && layout !== 'bullet') cls.push(layout);
   if (completedAt) cls.push('done');
-
-  const saveEdit = () => {
-    if (editingText !== null && editingText.trim()) onSaveEdit(node.row, editingText.trim());
-    setEditingText(null);
-  };
-  const saveAdd = () => {
-    if (addingText !== null && addingText.trim()) onAddChild(node.row, addingText.trim());
-    setAddingText(null);
-  };
+  if (selected) cls.push('selected');
+  if (editing) cls.push('editing');
 
   return (
-    <li className={cls.join(' ')} style={{ marginLeft: depth > 0 ? '1.2rem' : undefined }}>
-      {editingText !== null ? (
+    <li className={cls.join(' ')} style={{ marginLeft: depth > 0 ? '1.1rem' : undefined }}>
+      {editing ? (
         <>
           <span className="bullet">{layout === 'todo' ? (completedAt ? '☑' : '☐') : '•'}</span>
           <textarea
@@ -92,48 +97,43 @@ function NodeView({
             value={editingText}
             rows={Math.max(1, editingText.split('\n').length)}
             autoFocus
-            onChange={(e) => setEditingText(e.target.value)}
+            placeholder="Type… Enter adds a bullet on the same level · Shift+Enter newline · Esc cancel"
+            onChange={(e) => onEditingText(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                saveEdit();
+                onEnterFromEdit(row, editingText.trim());
               } else if (e.key === 'Escape') {
-                setEditingText(null);
+                onCancelEdit();
               }
             }}
             aria-label="Edit bullet text"
           />
-          <button className="link" onClick={saveEdit} title="Save">✓</button>
-          <button className="link danger" onClick={() => setEditingText(null)} title="Cancel">✕</button>
+          <span className="editor-actions">
+            <button className="link" onClick={() => onSaveEdit(row, editingText.trim())} title="Save">✓</button>
+            <button className="link danger" onClick={onCancelEdit} title="Cancel">✕</button>
+          </span>
         </>
       ) : (
         <>
-          <span className="bullet">{layout === 'todo' ? (completedAt ? '☑' : '☐') : '•'}</span>
-          <span className="text">{text}</span>
+          <span
+            className={'bullet' + (layout === 'todo' ? ' bullet-toggle' : '')}
+            onClick={() => (layout === 'todo' && mine ? onToggleTodo(row) : onSelect(row))}
+            title={layout === 'todo' && mine ? 'Toggle done' : undefined}
+          >
+            {layout === 'todo' ? (completedAt ? '☑' : '☐') : '•'}
+          </span>
+          <span className="text" onClick={() => onSelect(row)}>
+            {text}
+          </span>
           {mine && (
-            <span className="actions">
-              {layout === 'todo' && (
-                <button className="link" onClick={() => onToggleTodo(node.row)}>
-                  {completedAt ? '↺' : '✓'}
-                </button>
-              )}
-              <button className="link" onClick={() => setAddingText('')} title="Add child bullet">
-                +
-              </button>
-              <button className="link" onClick={() => setEditingText(node.row.text)} title="Edit text">
-                ✎
-              </button>
-              <button className="link" onClick={() => onSetRoot(node.row)} title="Make this the FoodWiki root">
-                ●
-              </button>
-              <button className="link danger" onClick={() => onDelete(node.row)} title="Delete">
-                ✕
-              </button>
-            </span>
+            <button className="row-edit" onClick={() => onEdit(row)} title="Edit" aria-label="Edit">
+              ✎
+            </button>
           )}
         </>
       )}
-      {(node.children.length > 0 || addingText !== null) && (
+      {node.children.length > 0 && (
         <ul className="children">
           {node.children.map((c) => (
             <NodeView
@@ -141,43 +141,23 @@ function NodeView({
               node={c}
               depth={depth + 1}
               signedInAs={signedInAs}
-              onAddChild={onAddChild}
+              selectedUri={selectedUri}
+              editingUri={editingUri}
+              onSelect={onSelect}
+              onEdit={onEdit}
               onToggleTodo={onToggleTodo}
-              onDelete={onDelete}
+              editingText={editingText}
+              onEditingText={onEditingText}
               onSaveEdit={onSaveEdit}
-              onSetRoot={onSetRoot}
+              onCancelEdit={onCancelEdit}
+              onEnterFromEdit={onEnterFromEdit}
             />
           ))}
-          {addingText !== null && (
-            <li className="node adding" style={{ marginLeft: '1.2rem' }}>
-              <span className="bullet">•</span>
-              <textarea
-                className="editor"
-                value={addingText}
-                rows={Math.max(1, addingText.split('\n').length)}
-                autoFocus
-                placeholder="New bullet… (Enter to add, Esc to cancel)"
-                onChange={(e) => setAddingText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    saveAdd();
-                  } else if (e.key === 'Escape') {
-                    setAddingText(null);
-                  }
-                }}
-                aria-label="New child bullet text"
-              />
-              <button className="link" onClick={saveAdd} title="Add">✓</button>
-              <button className="link danger" onClick={() => setAddingText(null)} title="Cancel">✕</button>
-            </li>
-          )}
         </ul>
       )}
     </li>
   );
 }
-
 
 /** Return rows that are in the subtree rooted at `rootUri` (inclusive). */
 function subtreeRows(rows: OutlineRow[], rootUri: string): OutlineRow[] {
@@ -301,6 +281,69 @@ function SettingsPane({
 }
 
 
+function ActionBar({
+  mine,
+  selected,
+  isRoot,
+  showRootBtn,
+  onAddChild,
+  onEdit,
+  onMoveUp,
+  onMoveDown,
+  onIndent,
+  onOutdent,
+  onSetRoot,
+  onDelete,
+  onClose,
+  inlineText,
+}: {
+  mine: boolean;
+  selected: OutlineRow | null;
+  isRoot: boolean;
+  showRootBtn: boolean;
+  onAddChild?: () => void;
+  onEdit?: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  onIndent?: () => void;
+  onOutdent?: () => void;
+  onSetRoot?: () => void;
+  onDelete?: () => void;
+  onClose: () => void;
+  inlineText?: string;
+}) {
+  if (!selected) return null;
+  return (
+    <div className="actionbar">
+      <div className="actionbar-row">
+        {mine && (
+          <>
+            <button className="ab" onClick={onMoveUp} title="Move up" aria-label="Move up">▲</button>
+            <button className="ab" onClick={onMoveDown} title="Move down" aria-label="Move down">▼</button>
+            <button className="ab" onClick={onIndent} title="Indent (make child of previous)" aria-label="Indent">⤶</button>
+            <button className="ab" onClick={onOutdent} title="Outdent (sibling of parent)" aria-label="Outdent">⤺</button>
+            <button className="ab" onClick={onAddChild} title="Add child bullet" aria-label="Add child bullet">＋</button>
+            <button className="ab" onClick={onEdit} title="Edit" aria-label="Edit">✎</button>
+            {onSetRoot && (
+              <button
+                className={isRoot ? 'ab on' : 'ab'}
+                onClick={isRoot ? undefined : onSetRoot}
+                title={isRoot ? 'This is the FoodWiki root' : 'Make this the FoodWiki root'}
+                aria-label="Make this the FoodWiki root"
+              >
+                ●
+              </button>
+            )}
+            <button className="ab danger" onClick={onDelete} title="Delete" aria-label="Delete">🗑</button>
+          </>
+        )}
+        <button className="ab" onClick={onClose} title="Close" aria-label="Close">✕</button>
+      </div>
+      <div className="actionbar-text">{inlineText ? inlineText.slice(0, 60) : '—'}</div>
+    </div>
+  );
+}
+
 export function App() {
   const [input, setInput] = useState('');
   const [did, setDid] = useState<string | null>(null);
@@ -314,6 +357,11 @@ export function App() {
   const [rootUri, setRootUri] = useState<string | null>(null);
   const [outlineRkey, setOutlineRkey] = useState<string>('self'); // 'self' = whole forest; else subtree rkey
   const [showSettings, setShowSettings] = useState(false);
+  const [selectedUri, setSelectedUri] = useState<string | null>(null);
+  const [editingUri, setEditingUri] = useState<string | null>(null);
+  const [editingText, setEditingTextState] = useState('');
+  const [topAddText, setTopAddText] = useState('');
+  const [addChildTarget, setAddChildTarget] = useState<OutlineRow | null>(null);
 
   const DEFAULT = 'did:plc:kwclrfytscd4udqzmsv42rj3';
 
@@ -606,9 +654,240 @@ export function App() {
     window.setTimeout(() => setWriteMsg(null), 3000);
   }
 
+  // --- outline editing helpers (Workflowy-style) ---
+
+  /** Rows grouped by parent for sibling math. */
+  function siblingsOf(row: OutlineRow): OutlineRow[] {
+    return (data?.rows ?? []).filter((r) => (r.parent ?? undefined) === (row.parent ?? undefined)).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+  }
+
+  /** Insert a new bullet as the next sibling below `row` (same parent). Returns new URI. */
+  async function insertSiblingBelow(row: OutlineRow, text: string): Promise<string | null> {
+    try {
+      const { client, did: myDid } = await requireClient();
+      const sibs = siblingsOf(row);
+      const idx = sibs.findIndex((r) => r.uri === row.uri);
+      const next = idx >= 0 ? sibs[idx + 1] : undefined;
+      const sortKey = midSortKey(row.sortKey, next?.sortKey);
+      const uri = await createBullet(client, myDid, {
+        text,
+        sortKey,
+        parent: row.parent,
+        layout: 'bullet',
+        createdAt: new Date().toISOString(),
+      });
+      await refreshOwn();
+      return uri;
+    } catch (e) {
+      setWriteMsg(`Error: ${e instanceof Error ? e.message : String(e)}`);
+      return null;
+    }
+  }
+
+  /** Enter in an edit box: save the current bullet, then create a new sibling below and edit it. */
+  async function enterFromEdit(row: OutlineRow, text: string) {
+    if (text && text !== row.text) {
+      await editText(row, text); // save current
+    }
+    // create the next bullet at the same level and immediately edit it
+    const uri = await insertSiblingBelow(row, '');
+    if (uri) {
+      setEditingUri(uri);
+      setEditingTextState('');
+      setSelectedUri(uri);
+    } else {
+      cancelEdit(); // write failed; leave the saved bullet
+    }
+  }
+
+  async function moveRow(row: OutlineRow, dir: -1 | 1) {
+    try {
+      const { client, did: myDid } = await requireClient();
+      const sibs = siblingsOf(row);
+      const idx = sibs.findIndex((r) => r.uri === row.uri);
+      const swap = sibs[idx + dir];
+      if (!swap) return; // already at edge
+      // swap sortKeys
+      await putBullet(client, myDid, rkeyFromUri(row.uri), {
+        text: row.text,
+        sortKey: swap.sortKey,
+        createdAt: row.createdAt,
+        parent: row.parent,
+        layout: row.layout,
+        completedAt: row.completedAt,
+      });
+      await putBullet(client, myDid, rkeyFromUri(swap.uri), {
+        text: swap.text,
+        sortKey: row.sortKey,
+        createdAt: swap.createdAt,
+        parent: swap.parent,
+        layout: swap.layout,
+        completedAt: swap.completedAt,
+      });
+      await refreshOwn();
+    } catch (e) {
+      setWriteMsg(`Error: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    window.setTimeout(() => setWriteMsg(null), 3000);
+  }
+
+  async function indentRow(row: OutlineRow) {
+    try {
+      const { client, did: myDid } = await requireClient();
+      // find previous sibling at the same level → become its child
+      const sibs = siblingsOf(row);
+      const idx = sibs.findIndex((r) => r.uri === row.uri);
+      const prev = sibs[idx - 1];
+      if (!prev) return;
+      const newParent = prev.uri;
+      // new sortKey: after last child of prev
+      const children = (data?.rows ?? []).filter((r) => r.parent === newParent).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+      const sortKey = children.length ? midSortKey(children[children.length - 1]!.sortKey, undefined) : 'a0';
+      await putBullet(client, myDid, rkeyFromUri(row.uri), {
+        text: row.text,
+        sortKey,
+        createdAt: row.createdAt,
+        parent: newParent,
+        layout: row.layout,
+        completedAt: row.completedAt,
+      });
+      await refreshOwn();
+    } catch (e) {
+      setWriteMsg(`Error: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    window.setTimeout(() => setWriteMsg(null), 3000);
+  }
+
+  async function outdentRow(row: OutlineRow) {
+    try {
+      const { client, did: myDid } = await requireClient();
+      if (!row.parent) return; // already top level
+      // find the parent row; the row becomes a sibling AFTER the parent
+      const parent = (data?.rows ?? []).find((r) => r.uri === row.parent);
+      if (!parent) return;
+      const newParent = parent.parent;
+      // sortKey: after the previous parent itself → insert right after it
+      const pSibs = siblingsOf(parent);
+      const idx = pSibs.findIndex((r) => r.uri === parent.uri);
+      const next = idx >= 0 ? pSibs[idx + 1] : undefined;
+      const sortKey = midSortKey(parent.sortKey, next?.sortKey);
+      await putBullet(client, myDid, rkeyFromUri(row.uri), {
+        text: row.text,
+        sortKey,
+        createdAt: row.createdAt,
+        parent: newParent,
+        layout: row.layout,
+        completedAt: row.completedAt,
+      });
+      await refreshOwn();
+    } catch (e) {
+      setWriteMsg(`Error: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    window.setTimeout(() => setWriteMsg(null), 3000);
+  }
+
+  function startEdit(row: OutlineRow) {
+    setEditingUri(row.uri);
+    setEditingTextState(row.text);
+    setSelectedUri(row.uri);
+  }
+
+  function cancelEdit() {
+    setEditingUri(null);
+  }
+
+  function select(row: OutlineRow) {
+    setSelectedUri(row.uri);
+    if (editingUri && editingUri !== row.uri) setEditingUri(null); // selecting elsewhere closes the editor
+  }
+
   const title = outlineRec?.title ?? data?.outline?.title ?? data?.handle ?? (did ?? 'FoodWiki');
   const scopedRows = rootUri ? subtreeRows(data?.rows ?? [], rootUri) : (data?.rows ?? []);
   const rootRow = rootUri ? (data?.rows.find((r) => r.uri === rootUri) ?? null) : null;
+  const selectedRow = selectedUri ? (data?.rows.find((r) => r.uri === selectedUri) ?? null) : null;
+
+  /** Sanitize + guard before a write. */
+  function plainText(t: string): string {
+    return t.replace(/\r\n/g, '\n').trim();
+  }
+
+  /** Edit (already sanitized) — used by the editor save path. */
+  async function saveEditText(row: OutlineRow, text: string) {
+    const t = plainText(text);
+    if (!t) return;
+    if (t === row.text) { cancelEdit(); return; }
+    await editText(row, t);
+    cancelEdit();
+  }
+
+  /** Add a bullet at the top level (below all existing top-level). */
+  async function addTopBullet(text: string) {
+    try {
+      const { client, did: myDid } = await requireClient();
+      const tops = (data?.rows ?? []).filter((r) => !r.parent).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+      const sortKey = tops.length ? midSortKey(tops[tops.length - 1]!.sortKey, undefined) : 'a0';
+      const uri = await createBullet(client, myDid, {
+        text,
+        sortKey,
+        layout: 'bullet',
+        createdAt: new Date().toISOString(),
+      });
+      setWriteMsg('Added ✓');
+      setSelectedUri(uri);
+      await refreshOwn();
+    } catch (e) {
+      setWriteMsg(`Error: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    window.setTimeout(() => setWriteMsg(null), 3000);
+  }
+
+  /** Trigger the empty-state "add first" → opens the top add row. */
+  function startAddTop() {
+    setTopAddText('');
+    requestAnimationFrame(() => {
+      const el = document.querySelector('.addrow .editor') as HTMLTextAreaElement | null;
+      if (el) el.focus();
+    });
+  }
+
+  /** Action bar “add child”. */
+  function addChildFromBar(row: OutlineRow) {
+    setEditingUri(null);
+    // Focus the add row after creating an empty child? Simpler: create with placeholder text focused via editor below.
+    setAddChildTarget(row);
+    requestAnimationFrame(() => {
+      const el = document.querySelector('.addrow .editor') as HTMLTextAreaElement | null;
+      if (el) {
+        el.placeholder = `New child of “${row.text.slice(0, 40)}”…`;
+        el.focus();
+      }
+    });
+  }
+
+  /** Actually create the child when the user hits Enter in the add row while a child target is set. */
+  async function commitAddChild(text: string) {
+    if (!addChildTarget) return;
+    const target = addChildTarget;
+    setAddChildTarget(null);
+    try {
+      const { client, did: myDid } = await requireClient();
+      const children = (data?.rows ?? []).filter((r) => r.parent === target.uri).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+      const sortKey = children.length ? midSortKey(children[children.length - 1]!.sortKey, undefined) : 'a0';
+      const uri = await createBullet(client, myDid, {
+        text: plainText(text),
+        sortKey,
+        parent: target.uri,
+        layout: 'bullet',
+        createdAt: new Date().toISOString(),
+      });
+      setWriteMsg('Added ✓');
+      setSelectedUri(uri);
+      await refreshOwn();
+    } catch (e) {
+      setWriteMsg(`Error: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    window.setTimeout(() => setWriteMsg(null), 3000);
+  }
 
   return (
     <main className="app">
@@ -699,9 +978,16 @@ export function App() {
               {data.truncated && <span className="truncated">(truncated)</span>}
             </p>
             {scopedRows.length === 0 ? (
-              <p className="empty">
-                {signedInAs ? 'No bullets yet — add one below.' : 'No bullets yet — this garden is a blank slate.'}
-              </p>
+              <div className="empty-wrap">
+                <p className="empty">
+                  {signedInAs ? 'No bullets yet — start your garden below.' : 'No bullets yet — this garden is a blank slate.'}
+                </p>
+                {signedInAs === did && (
+                  <button className="button-primary" onClick={() => startAddTop()}>
+                    ＋ Add first bullet
+                  </button>
+                )}
+              </div>
             ) : (
               <ul className="nodes">
                 {buildTree(scopedRows).map((n) => (
@@ -710,18 +996,66 @@ export function App() {
                     node={n}
                     depth={0}
                     signedInAs={signedInAs}
-                    onAddChild={addChild}
+                    selectedUri={selectedUri}
+                    editingUri={editingUri}
+                    onSelect={select}
+                    onEdit={startEdit}
                     onToggleTodo={toggleTodo}
-                    onDelete={remove}
-                    onSaveEdit={editText}
-                    onSetRoot={setRoot}
+                    editingText={editingText}
+                    onEditingText={setEditingTextState}
+                    onSaveEdit={saveEditText}
+                    onCancelEdit={cancelEdit}
+                    onEnterFromEdit={enterFromEdit}
                   />
                 ))}
               </ul>
             )}
+            {signedInAs === did && (
+              <div className="addrow">
+                <textarea
+                  className="editor"
+                  rows={1}
+                  placeholder="Type here to add a bullet… Enter to add · Esc to clear"
+                  value={topAddText}
+                  onChange={(e) => setTopAddText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      const t = topAddText.trim();
+                      if (t) {
+                        if (addChildTarget) commitAddChild(t);
+                        else addTopBullet(t);
+                        setTopAddText('');
+                      }
+                    } else if (e.key === 'Escape') {
+                      setTopAddText('');
+                      setAddChildTarget(null);
+                    }
+                  }}
+                  aria-label="Add a top-level bullet"
+                />
+              </div>
+            )}
           </section>
         )
       )}
+
+      <ActionBar
+        mine={!!(selectedRow && signedInAs === did)}
+        selected={selectedRow}
+        isRoot={!!(rootUri && selectedRow && selectedUri === rootUri)}
+        showRootBtn={signedInAs === did}
+        onAddChild={selectedRow ? () => addChildFromBar(selectedRow) : undefined}
+        onEdit={selectedRow ? () => startEdit(selectedRow) : undefined}
+        onMoveUp={selectedRow ? () => moveRow(selectedRow, -1) : undefined}
+        onMoveDown={selectedRow ? () => moveRow(selectedRow, 1) : undefined}
+        onIndent={selectedRow ? () => indentRow(selectedRow) : undefined}
+        onOutdent={selectedRow ? () => outdentRow(selectedRow) : undefined}
+        onSetRoot={selectedRow ? () => setRoot(selectedRow) : undefined}
+        onDelete={selectedRow ? () => remove(selectedRow) : undefined}
+        onClose={() => setSelectedUri(null)}
+        inlineText={selectedRow ? selectedRow.text : undefined}
+      />
     </main>
   );
 }

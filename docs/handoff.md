@@ -24,7 +24,7 @@
 - **Model (matches Bulleted lexicon):** `app.bulleted.outline/self` = whole forest (NO `root` field ever — lexicon: "present if and only if the record key is not 'self'"); `app.bulleted.outline/<bullet-rkey>` = subtree record WITH `root` = that bullet's at-uri + its own title/description.
 - Reads outline record PUBLICLY from the author PDS: `resolvePds(did)` via `https://plc.directory/<did>` (#atproto_pds) → `GET {pds}/xrpc/com.atproto.repo.getRecord?repo&collection=app.bulleted.outline&rkey=<self|bullet-rkey>` (400 = none). Subtree levels inherit title/desc from ancestor (`self`) when no subtree record exists.
 - Write: authed `putRecord` at the level's rkey (see `packages/web/src/lib/root.ts` — `writeOutlineRecord(client, did, rkey, {title?,description?,root?})`, `deleteOutlineRecord` for clearing).
-- UI: per-bullet "●" sets root (writes subtree record, own bullets only), "clear root" banner button (deletes subtree record), shareable `/user/<did>/<rkey>/` URLs. Settings page edits the record **in effect at the current level** (self vs subtree) — no more clobbering self with subtree title/desc.
+- UI: **Workflowy-style mobile-first** — single-column list, tap-to-select, sticky bottom **action bar** with on-screen arrows (▲/▼ move, ⤶ indent, ⤺ outdent, ＋ add child, ✎ edit, ● set root, 🗑 delete); per-bullet "●" sets root (writes subtree record, own bullets only), "clear root" banner button (deletes subtree record), shareable `/user/<did>/<rkey>/` URLs. Settings page edits the record **in effect at the current level** (self vs subtree) — no more clobbering self with subtree title/desc.
 
 ### Lexicons & backfill
 - Provisioned on HappyView (all `source: network`): records `app.bulleted.node/outline/note/mirror/comment/commentPolicy`; query `getOutline`; permission sets `authFull/appAccess`.
@@ -48,7 +48,7 @@
 - Node 24; use `tsx` for TS scripts. Push via PR (not direct to main).
 
 ## Backlog (see FEATURES.md + docs/plan.md)
-- [x] Inline editing (no pop-ups) — ✅ shipped (#6): ✎ textarea edit (Enter save/Esc cancel), inline add-child row.
+- [x] Inline editing (no pop-ups) — ✅ shipped (#6) + redesigned (#9): ✎ textarea edit, **Enter saves + creates same-level sibling below** (continuous entry), Shift+Enter newline, Esc cancel, inline add row.
 - [x] Dedicated settings page for root bullet — ✅ shipped (#6): ⚙ Garden Settings (title/description + root dropdown).
 - [ ] `exchange.recipe` structured recipes.
 - [ ] Import from `github.com/bmann/twgroceries` (TiddlyWiki source of static foodwiki.bmann.ca). PAT access confirmed. App password will be provided when it's time.
