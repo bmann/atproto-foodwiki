@@ -13,3 +13,6 @@ data/
 packages/web/node_modules/
 packages/web/dist/
 packages/web/.vite/
+
+# TS build info
+*.tsbuildinfo

@@ -30,3 +30,15 @@ h2 { font-size: 1.15rem; margin: 0 0 .3rem; }
 .did-link:hover { text-decoration: underline; }
 .error { color: #ff6b6b; }
 .status, .empty { color: var(--muted); }
+
+/* Auth + write actions */
+.auth { display: flex; align-items: center; gap: .6rem; }
+.signin { display: flex; gap: .4rem; }
+.signin input { background: #222; border: 1px solid var(--border); color: inherit; border-radius: .4rem; padding: .35rem .6rem; width: 10rem; }
+.who { color: var(--muted); font-size: .8rem; }
+.who code { color: var(--accent); }
+button.link { background: none; border: 0; color: var(--accent); cursor: pointer; padding: .1rem .25rem; font-size: .95rem; opacity: .8; }
+button.link:hover { opacity: 1; text-decoration: underline; }
+button.link.danger { color: #ff6b6b; }
+.actions { display: inline-flex; gap: .15rem; margin-left: .45rem; opacity: 0; transition: opacity .15s; }
+.node:hover .actions { opacity: 1; }
