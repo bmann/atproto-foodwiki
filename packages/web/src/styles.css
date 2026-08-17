@@ -44,6 +44,34 @@ button.link.danger { color: #ff6b6b; }
 .node:hover .actions { opacity: 1; }
 
 
+/* Inline editor (no pop-ups) */
+.editor {
+  background: #222;
+  border: 1px solid var(--border);
+  color: inherit;
+  border-radius: .4rem;
+  padding: .3rem .5rem;
+  flex: 1 1 auto;
+  min-width: 8rem;
+  font: inherit;
+  line-height: 1.35;
+  resize: vertical;
+}
+.node.adding .editor::placeholder { color: var(--muted); }
+
+/* Settings pane */
+.settings { margin-top: 1.4rem; max-width: 34rem; }
+.settings h2 { margin-bottom: .9rem; }
+.field { display: block; margin-bottom: .9rem; }
+.field > span { display: block; font-size: .8rem; color: var(--muted); margin-bottom: .25rem; }
+.field input, .field textarea, .field select {
+  width: 100%; background: #222; border: 1px solid var(--border); color: inherit;
+  border-radius: .4rem; padding: .45rem .6rem; font: inherit;
+}
+.field select { width: auto; min-width: 16rem; }
+.settings-actions { display: flex; gap: .6rem; align-items: center; }
+.hint { color: var(--muted); font-size: .8rem; margin-top: .7rem; }
+
 /* FoodWiki root banner */
 .rootbanner { color: var(--accent); font-size: .85rem; margin: 0 0 .4rem; }
 .rootbanner em { font-style: italic; }
