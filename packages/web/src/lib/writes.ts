@@ -6,51 +6,74 @@ import {
   ComAtprotoRepoPutRecord,
   ComAtprotoRepoDeleteRecord,
 } from '@atcute/atproto';
+import { generateKeyBetween } from 'fractional-indexing';
 
-/** Fractional index: midpoint between prev and next (or below/above). */
+const DIGITS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+
+/** Increment a base62-encoded key tail (bounded growth, never throws). */
+function incTail(s: string): string {
+  const cs = s.split('');
+  let i = cs.length - 1;
+  for (; i >= 0; i--) {
+    const v = DIGITS.indexOf(cs[i]!);
+    if (v === -1) { cs[i] = '0'; continue; }
+    if (v < DIGITS.length - 1) { cs[i] = DIGITS[v + 1]!; break; }
+    cs[i] = DIGITS[0]!;
+    // else carry to the previous char
+  }
+  if (i < 0) cs.unshift(DIGITS[1]!); // all 'z's rolled over -> prefix '1'
+  return cs.join('');
+}
+
+/** Decrement a base62-encoded key tail (bounded growth, never throws). */
+function decTail(s: string): string {
+  const cs = s.split('');
+  let i = cs.length - 1;
+  for (; i >= 0; i--) {
+    const v = DIGITS.indexOf(cs[i]!);
+    if (v === -1) { cs[i] = '0'; continue; }
+    if (v > 0) { cs[i] = DIGITS[v - 1]!; break; }
+    cs[i] = DIGITS[DIGITS.length - 1]!;
+    // else borrow from the previous char
+  }
+  if (i < 0) return '0' + s; // first char rolled under
+  return cs.join('');
+}
+
+/**
+ * Fractional index: midpoint between prev and next (or below/above).
+ * Uses the canonical `fractional-indexing` (rocicorp) base62 implementation for
+ * valid keys — short keys (3 chars after 2000 appends), one-record insert.
+ *
+ * Legacy data (pre-2026-08) used non-canonical keys like `a20`/`a00`/`a200` that
+ * the library rejects (they collapse to the same position as `a2`/`a0`). For
+ * those we fall back to a bounded byte-order increment/decrement: monotone,
+ * never grows unboundedly, never throws. Newly generated keys are always
+ * canonical, so the fallback disappears as data is rewritten.
+ */
 export function midSortKey(prev: string | undefined, next: string | undefined): string {
   if (prev === undefined && next === undefined) return 'a0';
-  if (prev === undefined) return before(next!);
-  if (next === undefined) return after(prev);
-  if (prev >= next) return after(prev);
-  // Try ASCII midpoint
-  let a = prev;
-  let b = next;
-  const common = commonPrefix(a, b);
-  const sa = a.slice(common.length);
-  const sb = b.slice(common.length);
-  if (sa.length === 0) {
-    // a is prefix of b: e.g. "a" and "a1"
-    const firstB = sb[0]!;
-    const c = String.fromCharCode(firstB.charCodeAt(0) - 1 >= 48 ? firstB.charCodeAt(0) - 1 : firstB.charCodeAt(0));
-    const cand = common + c;
-    if (cand > a && cand < b) return cand;
-    return after(a);
+  if (prev === undefined) {
+    try { return generateKeyBetween(null, next!); } catch { return decTail(next!); }
   }
-  let i = 0;
-  while (i < sa.length && i < sb.length && sa[i] === sb[i]) i++;
-  const ca = sa.charCodeAt(i);
-  const cb = sb.charCodeAt(i);
-  const avg = Math.floor((ca + cb) / 2);
-  if (avg === ca) return after(a);
-  const cand = common + sa.slice(0, i) + String.fromCharCode(avg) + '0';
-  if (cand > a && cand < b) return cand;
-  return after(a);
+  if (next === undefined) {
+    try { return generateKeyBetween(prev, null); } catch { return incTail(prev); }
+  }
+  if (prev === next) {
+    try { return generateKeyBetween(prev, null); } catch { return incTail(prev); }
+  }
+  try {
+    return generateKeyBetween(prev, next);
+  } catch {
+    // Same position collision (legacy 'a2' vs 'a20'): place after prev.
+    // New keys are canonical so this is a rare legacy-only path.
+    return incTail(prev);
+  }
 }
 
-function commonPrefix(a: string, b: string): string {
-  let i = 0;
-  while (i < a.length && i < b.length && a[i] === b[i]) i++;
-  return a.slice(0, i);
-}
-function after(s: string): string {
-  const bumped = s + '0';
-  return bumped;
-}
-function before(s: string): string {
-  const first = s.charCodeAt(0);
-  const half = String.fromCharCode(Math.max(48, Math.floor((48 + first) / 2)));
-  return half + s.slice(1);
+/** Strict byte-order compare for fractional-order sort keys (never localeCompare). */
+export function compareKeys(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
 }
 
 export interface NodeRecordInput {

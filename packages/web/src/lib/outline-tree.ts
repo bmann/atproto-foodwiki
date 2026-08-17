@@ -9,6 +9,8 @@
 // accept either shape and normalize to OUR OWN outline model here, so the UI
 // doesn't depend on which the server returns.
 
+import { compareKeys } from './writes';
+
 export interface OutlineRow {
   uri: string;
   rkey: string;
@@ -84,6 +86,16 @@ export interface OutlineTreeNode {
   children: OutlineTreeNode[];
 }
 
+/**
+ * Strict byte-order comparator for fractional sort keys, then rkey tiebreak.
+ * Never localeCompare: collation ordering disagrees with base62 order keys.
+ */
+export function compareRows(a: OutlineRow, b: OutlineRow): number {
+  const c = compareKeys(a.sortKey, b.sortKey);
+  if (c !== 0) return c;
+  return a.uri < b.uri ? -1 : a.uri > b.uri ? 1 : 0;
+}
+
 export function buildTree(nodes: OutlineRow[]): OutlineTreeNode[] {
   const byUri = new Map<string, OutlineTreeNode>();
   const roots: OutlineTreeNode[] = [];
@@ -100,10 +112,8 @@ export function buildTree(nodes: OutlineRow[]): OutlineTreeNode[] {
     else roots.push(node);
   }
 
-  const sort = (a: OutlineTreeNode, b: OutlineTreeNode) =>
-    a.row.sortKey.localeCompare(b.row.sortKey) || a.row.uri.localeCompare(b.row.uri);
   const visit = (nodes: OutlineTreeNode[]) => {
-    nodes.sort(sort);
+    nodes.sort((a, b) => compareRows(a.row, b.row));
     for (const n of nodes) visit(n.children);
   };
   visit(roots);
