@@ -16,7 +16,7 @@ import {
 } from './lib/oauth';
 import { buildTree, type OutlineData, type OutlineRow, type OutlineTreeNode } from './lib/outline-tree';
 import { createBullet, putBullet, deleteBullet, midSortKey } from './lib/writes';
-import { fetchOutlineRecord, writeOutlineRecord, type OutlineRecord } from './lib/root';
+import { fetchOutlineRecord, writeOutlineRecord, deleteOutlineRecord, type OutlineRecord } from './lib/root';
 
 function rkeyFromUri(uri: string): string {
   return uri.slice(uri.lastIndexOf('/') + 1);
@@ -216,6 +216,7 @@ function SettingsPane({
   rows,
   myDid,
   rootUri,
+  level,
   onSave,
   onSaveRoot,
   onClose,
@@ -224,17 +225,31 @@ function SettingsPane({
   rows: OutlineRow[];
   myDid: string | null;
   rootUri: string | null;
+  level: string; // 'self' = whole forest, else subtree rkey
   onSave: (title: string, description: string) => void;
   onSaveRoot: (uri: string) => void;
   onClose: () => void;
 }) {
   const [title, setTitle] = useState(rec?.title ?? '');
   const [description, setDescription] = useState(rec?.description ?? '');
+  // Sync when the outline record at this level (re)loads — e.g. after sign-in or navigation.
+  useEffect(() => {
+    setTitle(rec?.title ?? '');
+    setDescription(rec?.description ?? '');
+  }, [rec]);
   const flat = flattenRows(rows);
+  const isSubtree = level !== 'self';
 
   return (
     <section className="settings">
       <h2>Garden Settings</h2>
+      <p className="hint">
+        {isSubtree ? (
+          <>Editing the outline at <code>rkey {level}</code> (this subtree). Title and description apply to this level.</>
+        ) : (
+          <>Editing your whole-account outline (<code>rkey self</code>).</>
+        )}
+      </p>
       <label className="field">
         <span>Title</span>
         <input
@@ -254,7 +269,7 @@ function SettingsPane({
           aria-label="Garden description"
         />
       </label>
-      {myDid && (
+      {myDid && !isSubtree && (
         <label className="field">
           <span>FoodWiki root bullet</span>
           <select
@@ -297,11 +312,12 @@ export function App() {
   const [writeMsg, setWriteMsg] = useState<string | null>(null);
   const [outlineRec, setOutlineRec] = useState<OutlineRecord | null>(null);
   const [rootUri, setRootUri] = useState<string | null>(null);
+  const [outlineRkey, setOutlineRkey] = useState<string>('self'); // 'self' = whole forest; else subtree rkey
   const [showSettings, setShowSettings] = useState(false);
 
   const DEFAULT = 'did:plc:kwclrfytscd4udqzmsv42rj3';
 
-  const load = useCallback(async (target: string) => {
+  const load = useCallback(async (target: string, targetRkey?: string | null) => {
     setLoading(true);
     setError(null);
     try {
@@ -319,14 +335,28 @@ export function App() {
         return null;
       }
       setData(res.data);
-      // fetch the author's outline record (rkey self) for root/title
+      // Which outline record is "in effect" at this level: 'self' = whole forest, else the subtree rkey.
+      const levelRkey = targetRkey && targetRkey !== 'self' ? targetRkey : 'self';
       try {
-        const rec = await fetchOutlineRecord(finalDid);
-        setOutlineRec(rec);
-        setRootUri(rec?.root ?? null);
+        const rec = await fetchOutlineRecord(finalDid, levelRkey);
+        // For a subtree, the record may have been written at the ancestor (self) — inherit its title/desc.
+        let recInherited: OutlineRecord | null = rec;
+        if (levelRkey !== 'self' && !rec) {
+          recInherited = await fetchOutlineRecord(finalDid, 'self').catch(() => null);
+        }
+        setOutlineRec(recInherited);
+        setOutlineRkey(levelRkey);
+        // Scoping: subtree record's root, else the zoomed bullet itself (URL zoom even without a record).
+        let scope: string | null = null;
+        if (levelRkey !== 'self') {
+          const bullet = res.data.rows.find((r) => r.uri.endsWith('/' + levelRkey));
+          scope = rec?.root ?? (bullet?.uri ?? null);
+        }
+        setRootUri(scope);
       } catch {
         setOutlineRec(null);
-        setRootUri(null);
+        setOutlineRkey(levelRkey);
+        setRootUri(levelRkey === 'self' ? null : null);
       }
       return res.data;
     } catch (e) {
@@ -363,12 +393,8 @@ export function App() {
       }
       const target = identityFromPath(window.location.pathname) ?? DEFAULT;
       setInput(target);
-      const loaded = await load(target);
       const rk = rkeyFromPath(window.location.pathname);
-      if (rk && loaded) {
-        const full = loaded.rows.find((r) => r.uri.endsWith('/' + rk));
-        if (full) setRootUri(full.uri);
-      }
+      await load(target, rk);
     })();
   }, [load]);
 
@@ -378,7 +404,7 @@ export function App() {
       const target = identityFromPath(window.location.pathname);
       if (target) {
         setInput(target);
-        load(target);
+        load(target, rkeyFromPath(window.location.pathname));
       }
     };
     window.addEventListener('popstate', onPop);
@@ -416,7 +442,7 @@ export function App() {
   }
 
   const refreshOwn = async () => {
-    if (did) await load(did);
+    if (did) await load(did, outlineRkey === 'self' ? undefined : outlineRkey);
   };
 
   async function addChild(parent: OutlineRow, text: string) {
@@ -480,14 +506,16 @@ export function App() {
   async function setRoot(row: OutlineRow) {
     try {
       const { client, did: myDid } = await requireClient();
-      await writeOutlineRecord(client, myDid, { root: row.uri });
+      // Subtree outline record: rkey = the bullet's rkey, root = its at-uri
+      await writeOutlineRecord(client, myDid, rkeyFromUri(row.uri), { root: row.uri });
       setRootUri(row.uri);
+      setOutlineRkey(rkeyFromUri(row.uri));
       setWriteMsg('FoodWiki root set ✓');
       if (did) {
         const path = `/user/${encodeURIComponent(did)}/${encodeURIComponent(uriToRkey(row.uri))}/`;
         if (window.location.pathname !== path) window.history.pushState({}, '', path);
       }
-      await load(myDid);
+      await load(myDid, rkeyFromUri(row.uri));
     } catch (e) {
       setWriteMsg(`Error: ${e instanceof Error ? e.message : String(e)}`);
     }
@@ -497,8 +525,12 @@ export function App() {
   async function clearRoot() {
     try {
       const { client, did: myDid } = await requireClient();
-      await writeOutlineRecord(client, myDid, { root: undefined });
+      const subRkey = outlineRkey !== 'self' ? outlineRkey : null;
+      if (subRkey) {
+        await deleteOutlineRecord(client, myDid, subRkey);
+      }
       setRootUri(null);
+      setOutlineRkey('self');
       setWriteMsg('Back to whole-account view ✓');
       if (did) {
         const path = `/user/${encodeURIComponent(did)}/`;
@@ -522,32 +554,52 @@ export function App() {
     window.setTimeout(() => setWriteMsg(null), 3000);
   }
 
-  /** Save title/description from the settings page. */
+  /** Save title/description/root at the CURRENT view level (self or subtree). */
   async function saveSettings(title: string, description: string) {
     try {
       const { client, did: myDid } = await requireClient();
-      await writeOutlineRecord(client, myDid, {
+      const rkey = outlineRkey !== 'self' ? outlineRkey : 'self';
+      await writeOutlineRecord(client, myDid, rkey, {
         title: title.trim() || undefined,
         description: description.trim() || undefined,
-        root: rootUri === myDid ? undefined : rootUri ?? undefined,
       });
       setWriteMsg('Settings saved ✓');
-      await load(myDid);
+      await load(myDid, rkey === 'self' ? undefined : rkey);
     } catch (e) {
       setWriteMsg(`Error: ${e instanceof Error ? e.message : String(e)}`);
     }
     window.setTimeout(() => setWriteMsg(null), 3000);
   }
 
-  /** Pick root from the settings page selector. '"'whole-account'"' is '' → clears root. */
+  /** Pick root from the settings page selector: '' = whole account (clear), else root = that bullet. */
   async function saveRootFromSettings(uri: string) {
     try {
       const { client, did: myDid } = await requireClient();
-      const root = uri === '' || uri === myDid ? undefined : uri;
-      await writeOutlineRecord(client, myDid, { root });
-      setRootUri(root ?? null);
-      setWriteMsg('FoodWiki root updated ✓');
-      await load(myDid);
+      if (uri === '' || uri === myDid) {
+        // Clear: delete the current subtree outline record, return to whole-forest
+        if (outlineRkey !== 'self') {
+          await deleteOutlineRecord(client, myDid, outlineRkey);
+        }
+        setRootUri(null);
+        setOutlineRkey('self');
+        setWriteMsg('Back to whole-account view ✓');
+        if (did) {
+          const path = `/user/${encodeURIComponent(did)}/`;
+          if (window.location.pathname !== path) window.history.pushState({}, '', path);
+        }
+        await load(myDid);
+      } else {
+        const rkey = rkeyFromUri(uri);
+        await writeOutlineRecord(client, myDid, rkey, { root: uri });
+        setRootUri(uri);
+        setOutlineRkey(rkey);
+        setWriteMsg('FoodWiki root updated ✓');
+        if (did) {
+          const path = `/user/${encodeURIComponent(did)}/${encodeURIComponent(rkey)}/`;
+          if (window.location.pathname !== path) window.history.pushState({}, '', path);
+        }
+        await load(myDid, rkey);
+      }
     } catch (e) {
       setWriteMsg(`Error: ${e instanceof Error ? e.message : String(e)}`);
     }
@@ -614,10 +666,12 @@ export function App() {
       {loading && <p className="status">Loading…</p>}
 
       {showSettings ? <SettingsPane
+          key={outlineRkey + '|' + (did ?? '')}
           rec={outlineRec}
           rows={data?.rows ?? []}
           myDid={signedInAs}
           rootUri={rootUri}
+          level={outlineRkey}
           onSave={saveSettings}
           onSaveRoot={saveRootFromSettings}
           onClose={() => setShowSettings(false)}

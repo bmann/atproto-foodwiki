@@ -20,12 +20,11 @@
 - Writes: `client.call(ComAtprotoRepo*Record.mainSchema)` from `@atcute/atproto` (procedures use `input` not `data`), `repo` cast to `ActorIdentifier`. Bullet record: `app.bulleted.node` with `text, sortKey, createdAt` (required) + `parent/layout/display/completedAt/facets`.
 - HappyView v2.13.0 `getOutline` returns RAW records shape `{records:[...]}` (rows: `uri,text,sortKey,parent?,layout?,completedAt?,facets?,$type`), NOT the annotated `#node` shape (`nodes`,`did`,`handle`,`outline`,`truncated`,`cid`,`rkey`,`childCount`) from the newer lexicon. Web app normalizes either shape (`packages/web/src/lib/outline-tree.ts`). Also `node` (zoom) param is IGNORED by HappyView — root scoping is done client-side (`subtreeRows`).
 
-### FoodWiki root feature (shipped)
-- Modes: whole-account (default) vs root-bullet. Stored in `app.bulleted.outline/self` record (`root` = at-uri of chosen bullet; absent = whole account). `app.bulleted.outline` key `self` = whole forest; other rkeys = subtree (we use `self`).
-- Reads outline record PUBLICLY from the author PDS: `resolvePds(did)` via `https://plc.directory/<did>` (#atproto_pds) → `GET {pds}/xrpc/com.atproto.repo.getRecord?repo&collection=app.bulleted.outline&rkey=self` (400 = none). Title comes from there.
-- Write: authed `putRecord` outline/self (see `packages/web/src/lib/root.ts`).
-- UI: per-bullet "●" sets root (own bullets only), "clear root" banner button; shareable `/user/<did>/<rkey>/` subtree URLs.
-- **Backlog (from user)**: inline editing (not prompt pop-ups); dedicated settings page for choosing/clearing the root bullet.
+### FoodWiki root feature + per-level outline records (shipped, corrected 2026-08-18)
+- **Model (matches Bulleted lexicon):** `app.bulleted.outline/self` = whole forest (NO `root` field ever — lexicon: "present if and only if the record key is not 'self'"); `app.bulleted.outline/<bullet-rkey>` = subtree record WITH `root` = that bullet's at-uri + its own title/description.
+- Reads outline record PUBLICLY from the author PDS: `resolvePds(did)` via `https://plc.directory/<did>` (#atproto_pds) → `GET {pds}/xrpc/com.atproto.repo.getRecord?repo&collection=app.bulleted.outline&rkey=<self|bullet-rkey>` (400 = none). Subtree levels inherit title/desc from ancestor (`self`) when no subtree record exists.
+- Write: authed `putRecord` at the level's rkey (see `packages/web/src/lib/root.ts` — `writeOutlineRecord(client, did, rkey, {title?,description?,root?})`, `deleteOutlineRecord` for clearing).
+- UI: per-bullet "●" sets root (writes subtree record, own bullets only), "clear root" banner button (deletes subtree record), shareable `/user/<did>/<rkey>/` URLs. Settings page edits the record **in effect at the current level** (self vs subtree) — no more clobbering self with subtree title/desc.
 
 ### Lexicons & backfill
 - Provisioned on HappyView (all `source: network`): records `app.bulleted.node/outline/note/mirror/comment/commentPolicy`; query `getOutline`; permission sets `authFull/appAccess`.

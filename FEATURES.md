@@ -56,10 +56,15 @@ account (`rkey: self` = whole forest; any other rkey = subtree rooted at `root`)
 outline record exists, or when the user hasn't chosen, FoodWiki shows the whole account
 forest — the permissive, obvious default.
 
-> **Status:** ✅ **shipped.** Sign in, open a bullet's “●” action to set it as your FoodWiki
-> root (writes `app.bulleted.outline/self` with `root` = that bullet), or “clear root” to
-> return to whole-account mode. Root views get their own shareable URL
-> (`/user/<did>/<rkey>/`).
+> **Status:** ✅ **shipped.** Open a bullet's “●” action to set it as your FoodWiki root
+> (writes `app.bulleted.outline/<rkey>` — the *subtree* record — with `root` = that bullet),
+> or “clear root” to return to whole-account mode (deletes the subtree record). Root views
+> get their own shareable URL (`/user/<did>/<rkey>/`).
+>
+> **Per-level settings:** the ⚙ Garden Settings page edits the outline record *in effect at
+> the current level* — `self` at `/user/<did>/` (whole garden title/description), or
+> `outline/<rkey>` when viewing a subtree (`/user/<did>/<rkey>/`). This matches the Bulleted
+> lexicon: each outline level carries its own title/description/root.
 
 ---
 
