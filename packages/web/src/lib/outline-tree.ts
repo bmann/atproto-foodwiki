@@ -17,6 +17,7 @@ export interface OutlineRow {
   parent?: string;
   layout?: string;
   completedAt?: string;
+  createdAt?: string;
   facets?: unknown;
   /** fields present only in the annotated #node shape */
   cid?: string;
@@ -54,6 +55,7 @@ export function normalizeOutline(raw: unknown): OutlineData {
     parent: r.parent ? String(r.parent) : undefined,
     layout: r.layout ? String(r.layout) : undefined,
     completedAt: r.completedAt ? String(r.completedAt) : undefined,
+    createdAt: r.createdAt ? String(r.createdAt) : undefined,
     facets: r.facets,
     cid: r.cid ? String(r.cid) : undefined,
     did: r.did ? String(r.did) : undefined,

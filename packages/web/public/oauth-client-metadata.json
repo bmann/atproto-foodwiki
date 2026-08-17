@@ -1,0 +1,10 @@
+{
+  "client_id": "https://web-production-eb82d.up.railway.app/oauth-client-metadata.json",
+  "client_uri": "https://web-production-eb82d.up.railway.app",
+  "redirect_uris": ["https://web-production-eb82d.up.railway.app/oauth/callback"],
+  "token_endpoint_auth_method": "none",
+  "grant_types": ["authorization_code", "refresh_token"],
+  "response_types": ["code"],
+  "scope": "atproto transition:generic include:app.bulleted.authFull",
+  "dpop_bound_access_tokens": true
+}
