@@ -90,16 +90,18 @@ function NodeView({
   return (
     <li className={cls.join(' ')} style={{ marginLeft: depth > 0 ? '1.1rem' : undefined }}>
       {editing ? (
-        <>
+        <div className="edit-row">
           <span className="bullet">{layout === 'todo' ? (completedAt ? '☑' : '☐') : '•'}</span>
           <textarea
             className="editor"
             value={editingText}
             rows={Math.max(1, editingText.split('\n').length)}
             autoFocus
+            enterKeyHint="enter"
             placeholder="Type… Enter adds a bullet on the same level · Shift+Enter newline · Esc cancel"
             onChange={(e) => onEditingText(e.target.value)}
             onKeyDown={(e) => {
+              if (e.nativeEvent.isComposing) return; // IME composition (mobile CJK)
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 onEnterFromEdit(row, editingText.trim());
@@ -113,7 +115,7 @@ function NodeView({
             <button className="link" onClick={() => onSaveEdit(row, editingText.trim())} title="Save">✓</button>
             <button className="link danger" onClick={onCancelEdit} title="Cancel">✕</button>
           </span>
-        </>
+        </div>
       ) : (
         <>
           <span
@@ -249,7 +251,7 @@ function SettingsPane({
           aria-label="Garden description"
         />
       </label>
-      {myDid && !isSubtree && (
+      {myDid && (
         <label className="field">
           <span>FoodWiki root bullet</span>
           <select
@@ -274,7 +276,8 @@ function SettingsPane({
         </button>
       </p>
       <p className="hint">
-        The root bullet sets the entry point of your FoodWiki garden. Choose “Whole account” to show every bullet.
+        The root bullet sets the entry point of your FoodWiki garden. Choose “Whole account (no root)” to show every bullet.
+        {isSubtree && ' You are currently viewing a subtree — picking a root here jumps to that bullet\u2019s level; “Whole account” returns to your whole forest.'}
       </p>
     </section>
   );
@@ -359,6 +362,7 @@ export function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [selectedUri, setSelectedUri] = useState<string | null>(null);
   const [editingUri, setEditingUri] = useState<string | null>(null);
+  const [editingIsNew, setEditingIsNew] = useState(false); // editing a freshly created (empty) bullet
   const [editingText, setEditingTextState] = useState('');
   const [topAddText, setTopAddText] = useState('');
   const [addChildTarget, setAddChildTarget] = useState<OutlineRow | null>(null);
@@ -686,13 +690,36 @@ export function App() {
 
   /** Enter in an edit box: save the current bullet, then create a new sibling below and edit it. */
   async function enterFromEdit(row: OutlineRow, text: string) {
-    if (text && text !== row.text) {
-      await editText(row, text); // save current
+    // Save the current bullet first (if it's an old bullet with changed text,
+    // or a new empty one that now has text).
+    if (editingIsNew) {
+      // The "new" bullet: if it has text now, persist it; then create the NEXT one.
+      if (text) {
+        try {
+          const { client, did: myDid } = await requireClient();
+          await putBullet(client, myDid, rkeyFromUri(row.uri), {
+            text,
+            sortKey: row.sortKey,
+            createdAt: row.createdAt,
+            parent: row.parent,
+            layout: row.layout,
+            completedAt: row.completedAt,
+          });
+          await refreshOwn();
+        } catch (e) {
+          setWriteMsg(`Error saving: ${e instanceof Error ? e.message : String(e)}`);
+          window.setTimeout(() => setWriteMsg(null), 3000);
+          return; // don't advance if save failed
+        }
+      }
+    } else if (text && text !== row.text) {
+      await editText(row, text); // save existing bullet
     }
-    // create the next bullet at the same level and immediately edit it
+    // create the next bullet at the same level, empty, and immediately edit it
     const uri = await insertSiblingBelow(row, '');
     if (uri) {
       setEditingUri(uri);
+      setEditingIsNew(true);
       setEditingTextState('');
       setSelectedUri(uri);
     } else {
@@ -788,12 +815,22 @@ export function App() {
 
   function startEdit(row: OutlineRow) {
     setEditingUri(row.uri);
+    setEditingIsNew(false);
     setEditingTextState(row.text);
     setSelectedUri(row.uri);
   }
 
   function cancelEdit() {
+    // Escaping a freshly created empty bullet should remove it (Workflowy behavior)
+    const uri = editingUri;
+    const isNew = editingIsNew;
+    const empty = editingText.trim() === '';
     setEditingUri(null);
+    setEditingIsNew(false);
+    setEditingTextState('');
+    if (uri && isNew && empty) {
+      remove({ uri, rkey: rkeyFromUri(uri) } as OutlineRow).catch(() => {});
+    }
   }
 
   function select(row: OutlineRow) {
@@ -818,6 +855,15 @@ export function App() {
     if (t === row.text) { cancelEdit(); return; }
     await editText(row, t);
     cancelEdit();
+  }
+
+  /** The add-row textarea's Enter → used for both top-level add and add-child. */
+  function onAddRowEnter() {
+    const t = topAddText.trim();
+    if (!t) return;
+    if (addChildTarget) commitAddChild(t);
+    else addTopBullet(t);
+    setTopAddText('');
   }
 
   /** Add a bullet at the top level (below all existing top-level). */
@@ -1015,18 +1061,15 @@ export function App() {
                 <textarea
                   className="editor"
                   rows={1}
+                  enterKeyHint="enter"
                   placeholder="Type here to add a bullet… Enter to add · Esc to clear"
                   value={topAddText}
                   onChange={(e) => setTopAddText(e.target.value)}
                   onKeyDown={(e) => {
+                    if (e.nativeEvent.isComposing) return;
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
-                      const t = topAddText.trim();
-                      if (t) {
-                        if (addChildTarget) commitAddChild(t);
-                        else addTopBullet(t);
-                        setTopAddText('');
-                      }
+                      onAddRowEnter();
                     } else if (e.key === 'Escape') {
                       setTopAddText('');
                       setAddChildTarget(null);
