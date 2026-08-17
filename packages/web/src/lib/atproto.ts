@@ -4,7 +4,7 @@ import { createClient } from '@foodwiki/core';
 import type { OutlineData } from './outline-tree';
 import { normalizeOutline } from './outline-tree';
 
-export const APPVIEW_URL = import.meta.env.VITE_APPVIEW_URL ?? 'https://atproto-foodwiki-production.up.railway.app';
+export const APPVIEW_URL = import.meta.env.VITE_APPVIEW_URL ?? 'https://happyview-atproto-foodwiki-production.up.railway.app';
 export const BSKY_PUBLIC = 'https://public.api.bsky.app';
 
 /** Public, unauthenticated client pointed at the FoodWiki appview. */

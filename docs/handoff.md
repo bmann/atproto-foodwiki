@@ -5,7 +5,7 @@
 
 ## Contract & key facts
 
-- **HappyView (prod)**: `https://atproto-foodwiki-production.up.railway.app`
+- **HappyView (prod)**: `https://happyview-atproto-foodwiki-production.up.railway.app`
   - Health `200`. Dashboard works. Postgres. Version string "0.1.0" == release v2.13.0 (expected).
   - **Admin API key**: `hv_fc5ea2be45df401269e8e7776645f556` (super-user bmann.ca). Store in env, never commit.
   - **Super user / admin account**: `bmann.ca` = `did:plc:2cxgdrgtsmrbqnjkwyplmp43`
@@ -23,7 +23,7 @@
   - `deploy/happyview` — Dockerfile (clone upstream v2.13.0), compose (dev), README
   - `scripts/` — `provision-happyview.mjs`, `check-happyview-upstream.mjs`, `validate-public-url.mjs`
   - `.github/workflows/happyview.yml` — upstream drift check
-- **Gotcha**: `PUBLIC_URL` must be a **full absolute URL with scheme** (e.g. `https://atproto-foodwiki-production.up.railway.app`), no trailing slash/path → else boot panic `ClientMetadata(InvalidClientId)`. Guard script: `scripts/validate-public-url.mjs`.
+- **Gotcha**: `PUBLIC_URL` must be a **full absolute URL with scheme** (e.g. `https://happyview-atproto-foodwiki-production.up.railway.app`), no trailing slash/path → else boot panic `ClientMetadata(InvalidClientId)`. Guard script: `scripts/validate-public-url.mjs`.
 
 ## Local dev
 
@@ -41,7 +41,7 @@
 ## API key management
 
 - Key lives only in env; do not commit. To rotate: Dashboard → Access → API Keys.
-- Admin API base: `https://atproto-foodwiki-production.up.railway.app/admin/...` with `Authorization: Bearer hv_...`.
+- Admin API base: `https://happyview-atproto-foodwiki-production.up.railway.app/admin/...` with `Authorization: Bearer hv_...`.
 
 ## Conventions
 
