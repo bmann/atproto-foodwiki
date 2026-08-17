@@ -16,6 +16,7 @@ import {
 } from './lib/oauth';
 import { buildTree, type OutlineData, type OutlineRow, type OutlineTreeNode } from './lib/outline-tree';
 import { createBullet, putBullet, deleteBullet, midSortKey } from './lib/writes';
+import { fetchOutlineRecord, writeOutlineRecord, type OutlineRecord } from './lib/root';
 
 function rkeyFromUri(uri: string): string {
   return uri.slice(uri.lastIndexOf('/') + 1);
@@ -33,6 +34,7 @@ function NodeView({
   onToggleTodo,
   onDelete,
   onEdit,
+  onSetRoot,
 }: {
   node: OutlineTreeNode;
   depth: number;
@@ -41,6 +43,7 @@ function NodeView({
   onToggleTodo: (row: OutlineRow) => void;
   onDelete: (row: OutlineRow) => void;
   onEdit: (row: OutlineRow) => void;
+  onSetRoot: (row: OutlineRow) => void;
 }) {
   const { text, layout, completedAt } = node.row;
   const mine = signedInAs && didFromUri(node.row.uri) === signedInAs;
@@ -64,6 +67,9 @@ function NodeView({
           <button className="link" onClick={() => onEdit(node.row)} title="Edit text">
             ✎
           </button>
+          <button className="link" onClick={() => onSetRoot(node.row)} title="Make this the FoodWiki root">
+            ●
+          </button>
           <button className="link danger" onClick={() => onDelete(node.row)} title="Delete">
             ✕
           </button>
@@ -81,6 +87,7 @@ function NodeView({
               onToggleTodo={onToggleTodo}
               onDelete={onDelete}
               onEdit={onEdit}
+              onSetRoot={onSetRoot}
             />
           ))}
         </ul>
@@ -89,10 +96,35 @@ function NodeView({
   );
 }
 
+/** Return rows that are in the subtree rooted at `rootUri` (inclusive). */
+function subtreeRows(rows: OutlineRow[], rootUri: string): OutlineRow[] {
+  const byUri = new Map(rows.map((r) => [r.uri, r]));
+  const isDescendant = (uri: string | undefined, ancestor: string): boolean => {
+    let cur = uri;
+    const seen = new Set<string>();
+    while (cur) {
+      if (seen.has(cur)) return false;
+      seen.add(cur);
+      if (cur === ancestor) return true;
+      cur = byUri.get(cur)?.parent;
+    }
+    return false;
+  };
+  return rows.filter((r) => r.uri === rootUri || isDescendant(r.parent, rootUri));
+}
+
 function identityFromPath(path: string): string | null {
-  const m = path.match(/^\/user\/([^/]+)\/?/);
+  const m = path.match(/^\/user\/([^/]+)(?:\/([^/]+))?\/?/);
   const g = m?.[1];
   return g ? decodeURIComponent(g) : null;
+}
+function rkeyFromPath(path: string): string | null {
+  const m = path.match(/^\/user\/([^/]+)\/([^/]+)\/?/);
+  const g = m?.[2];
+  return g ? decodeURIComponent(g) : null;
+}
+function uriToRkey(uri: string): string {
+  return uri.slice(uri.lastIndexOf('/') + 1);
 }
 
 export function App() {
@@ -104,6 +136,8 @@ export function App() {
   const [signedInAs, setSignedInAs] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [writeMsg, setWriteMsg] = useState<string | null>(null);
+  const [outlineRec, setOutlineRec] = useState<OutlineRecord | null>(null);
+  const [rootUri, setRootUri] = useState<string | null>(null);
 
   const DEFAULT = 'did:plc:kwclrfytscd4udqzmsv42rj3';
 
@@ -122,12 +156,23 @@ export function App() {
       if (res.error) {
         setError(res.error);
         setData(null);
-        return;
+        return null;
       }
       setData(res.data);
+      // fetch the author's outline record (rkey self) for root/title
+      try {
+        const rec = await fetchOutlineRecord(finalDid);
+        setOutlineRec(rec);
+        setRootUri(rec?.root ?? null);
+      } catch {
+        setOutlineRec(null);
+        setRootUri(null);
+      }
+      return res.data;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setData(null);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -158,7 +203,12 @@ export function App() {
       }
       const target = identityFromPath(window.location.pathname) ?? DEFAULT;
       setInput(target);
-      load(target);
+      const loaded = await load(target);
+      const rk = rkeyFromPath(window.location.pathname);
+      if (rk && loaded) {
+        const full = loaded.rows.find((r) => r.uri.endsWith('/' + rk));
+        if (full) setRootUri(full.uri);
+      }
     })();
   }, [load]);
 
@@ -275,6 +325,40 @@ export function App() {
     window.setTimeout(() => setWriteMsg(null), 3000);
   }
 
+  async function setRoot(row: OutlineRow) {
+    try {
+      const { client, did: myDid } = await requireClient();
+      await writeOutlineRecord(client, myDid, { root: row.uri });
+      setRootUri(row.uri);
+      setWriteMsg('FoodWiki root set ✓');
+      if (did) {
+        const path = `/user/${encodeURIComponent(did)}/${encodeURIComponent(uriToRkey(row.uri))}/`;
+        if (window.location.pathname !== path) window.history.pushState({}, '', path);
+      }
+      await load(myDid);
+    } catch (e) {
+      setWriteMsg(`Error: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    window.setTimeout(() => setWriteMsg(null), 3000);
+  }
+
+  async function clearRoot() {
+    try {
+      const { client, did: myDid } = await requireClient();
+      await writeOutlineRecord(client, myDid, { root: undefined });
+      setRootUri(null);
+      setWriteMsg('Back to whole-account view ✓');
+      if (did) {
+        const path = `/user/${encodeURIComponent(did)}/`;
+        if (window.location.pathname !== path) window.history.pushState({}, '', path);
+      }
+      await load(myDid);
+    } catch (e) {
+      setWriteMsg(`Error: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    window.setTimeout(() => setWriteMsg(null), 3000);
+  }
+
   async function remove(row: OutlineRow) {
     try {
       const { client, did: myDid } = await requireClient();
@@ -286,7 +370,9 @@ export function App() {
     window.setTimeout(() => setWriteMsg(null), 3000);
   }
 
-  const title = data?.outline?.title ?? data?.handle ?? (did ?? 'FoodWiki');
+  const title = outlineRec?.title ?? data?.outline?.title ?? data?.handle ?? (did ?? 'FoodWiki');
+  const scopedRows = rootUri ? subtreeRows(data?.rows ?? [], rootUri) : (data?.rows ?? []);
+  const rootRow = rootUri ? (data?.rows.find((r) => r.uri === rootUri) ?? null) : null;
 
   return (
     <main className="app">
@@ -341,22 +427,32 @@ export function App() {
       {data && (
         <section className="outline">
           <h2>{title}</h2>
+          {rootUri && (
+            <p className="rootbanner">
+              🌱 Viewing subtree rooted at {rootRow ? <em>“{rootRow.text.slice(0, 40)}”</em> : <code>{uriToRkey(rootUri)}</code>}
+              {signedInAs === did && (
+                <button className="link" onClick={clearRoot}>
+                  clear root
+                </button>
+              )}
+            </p>
+          )}
           <p className="meta">
             {did && <code>{did}</code>}
-            {data.rows.length > 0 && (
+            {scopedRows.length > 0 && (
               <span className="count">
-                {data.rows.length} {data.rows.length === 1 ? 'bullet' : 'bullets'}
+                {scopedRows.length} {scopedRows.length === 1 ? 'bullet' : 'bullets'}
               </span>
             )}
             {data.truncated && <span className="truncated">(truncated)</span>}
           </p>
-          {data.rows.length === 0 ? (
+          {scopedRows.length === 0 ? (
             <p className="empty">
               {signedInAs ? 'No bullets yet — add one below.' : 'No bullets yet — this garden is a blank slate.'}
             </p>
           ) : (
             <ul className="nodes">
-              {buildTree(data.rows).map((n) => (
+              {buildTree(scopedRows).map((n) => (
                 <NodeView
                   key={n.row.uri}
                   node={n}
@@ -366,6 +462,7 @@ export function App() {
                   onToggleTodo={toggleTodo}
                   onDelete={remove}
                   onEdit={editText}
+                  onSetRoot={setRoot}
                 />
               ))}
             </ul>
