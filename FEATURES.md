@@ -85,7 +85,8 @@ forest and subtree URLs (`/user/<did>/<rkey>/`) zoom into a root's children.
 ### Whatever's in your outliner, rendered as a garden
 
 - **Nested bullets** with headings (`h1/h2/h3`), bullets, todos, code blocks, quotes.
-- **Sibling ordering** via `sortKey` — the app preserves your order.
+- **Sibling ordering** via `sortKey` — canonical fractional keys (fractional-indexing) with a tolerant fallback so legacy keys keep working; byte-order comparison (fixed `localeCompare` collation bug); 10 unit tests in `packages/web/src/lib/sortkeys.test.ts`.
+- **Mobile-speed structural editing** — Twos-style: press **Space** at the start of a bullet to indent it; **Backspace** on an empty bullet to outdent it; works with the virtual keyboard, owner-only, saves in-progress text atomically. Compact mobile indent (`--indent` 0.7rem) with Logseq-style left guide lines.
 - **Todos** — checked-off bullets show as completed.
 - **Linkable, shareable URLs** per user.
 - **Facets** (mentions, tags, links) render from the underlying records — nothing to
