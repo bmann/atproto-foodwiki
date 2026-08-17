@@ -49,8 +49,8 @@
 - Node 24; use `tsx` for TS scripts. Push via PR (not direct to main).
 
 ## Backlog (see FEATURES.md + docs/plan.md)
-- [ ] Inline editing (no pop-ups). **[user-requested]**
-- [ ] Dedicated settings page for root bullet. **[user-requested]**
+- [x] Inline editing (no pop-ups) — ✅ shipped (#6): ✎ textarea edit (Enter save/Esc cancel), inline add-child row.
+- [x] Dedicated settings page for root bullet — ✅ shipped (#6): ⚙ Garden Settings (title/description + root dropdown).
 - [ ] `exchange.recipe` structured recipes.
 - [ ] Import from `github.com/bmann/twgroceries` (TiddlyWiki source of static foodwiki.bmann.ca). PAT access confirmed. App password will be provided when it's time.
 - [ ] Images/media in outlines (blob upload + appview blob proxy).
