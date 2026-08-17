@@ -33,16 +33,18 @@ h2 { font-size: 1.1rem; margin: 0 0 .2rem; }
 .children { margin-top: 0; }
 
 /* Nodes: single column, tap-to-select */
-.node { display: flex; align-items: flex-start; gap: .5rem; padding: .4rem .3rem; border-radius: .5rem; cursor: pointer; line-height: 1.45; }
+.node { display: block; position: relative; padding: .4rem .3rem; border-radius: .5rem; cursor: pointer; line-height: 1.45; }
 .node:hover { background: rgba(255,255,255,.04); }
 .node.selected { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
 .node.editing { background: var(--panel); cursor: default; }
-.bullet { color: var(--accent); flex: 0 0 auto; padding-top: .1rem; user-select: none; }
-.node .text { white-space: pre-wrap; overflow-wrap: anywhere; flex: 1 1 auto; min-width: 0; padding-top: .1rem; }
+.bullet { color: var(--accent); flex: 0 0 auto; padding-top: .1rem; user-select: none; display: inline-block; }
+.node .text { white-space: pre-wrap; overflow-wrap: anywhere; flex: 1 1 auto; min-width: 0; padding-top: .1rem; display: inline; }
 .node.done .text { text-decoration: line-through; color: var(--muted); }
 .node h1, .node h2, .node h3 { margin: 0; font-size: inherit; }
-.row-edit { background: none; border: 0; color: var(--accent); cursor: pointer; opacity: 0; font-size: .85rem; padding: .2rem .4rem; border-radius: .4rem; }
+.row-edit { background: none; border: 0; color: var(--accent); cursor: pointer; opacity: 0; font-size: .85rem; padding: .2rem .4rem; border-radius: .4rem; float: right; }
 .node:hover .row-edit, .node.selected .row-edit { opacity: 1; }
+.children { display: block; }
+
 
 .bullet-toggle { cursor: pointer; }
 .count { color: var(--muted); font-size: .75rem; }
@@ -53,6 +55,7 @@ h2 { font-size: 1.1rem; margin: 0 0 .2rem; }
 .empty-wrap .button-primary { display: inline-block; margin-top: .6rem; }
 
 /* ── Editor (inline) ── */
+.edit-row { display: flex; align-items: flex-start; gap: .4rem; }
 .editor {
   background: var(--panel);
   border: 1px solid var(--accent);
@@ -60,12 +63,12 @@ h2 { font-size: 1.1rem; margin: 0 0 .2rem; }
   border-radius: .5rem;
   padding: .45rem .55rem;
   flex: 1 1 auto;
-  min-width: 60%;
+  width: 100%;
   font: inherit;
   line-height: 1.4;
   resize: vertical;
 }
-.editor-actions { display: inline-flex; gap: .2rem; align-items: center; }
+.editor-actions { display: inline-flex; gap: .2rem; align-items: center; flex: 0 0 auto; }
 .node.adding .editor::placeholder { color: var(--muted); }
 
 /* bottom add row */
