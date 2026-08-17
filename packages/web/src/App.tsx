@@ -14,8 +14,8 @@ import {
   CLIENT_ID,
   REDIRECT_URI,
 } from './lib/oauth';
-import { buildTree, type OutlineData, type OutlineRow, type OutlineTreeNode } from './lib/outline-tree';
-import { createBullet, putBullet, deleteBullet, midSortKey } from './lib/writes';
+import { buildTree, compareRows, type OutlineData, type OutlineRow, type OutlineTreeNode } from './lib/outline-tree';
+import { compareKeys, createBullet, putBullet, deleteBullet, midSortKey } from './lib/writes';
 import { fetchOutlineRecord, writeOutlineRecord, deleteOutlineRecord, listOutlineRecords, type OutlineRecord } from './lib/root';
 
 function rkeyFromUri(uri: string): string {
@@ -34,7 +34,7 @@ function flattenRows(rows: OutlineRow[]): { row: OutlineRow; depth: number }[] {
     if (!byParent.has(k)) byParent.set(k, []);
     byParent.get(k)!.push(r);
   }
-  for (const list of byParent.values()) list.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+  for (const list of byParent.values()) list.sort(compareRows);
   const out: { row: OutlineRow; depth: number }[] = [];
   const walk = (parent: string | undefined, depth: number) => {
     for (const r of byParent.get(parent) ?? []) {
@@ -60,6 +60,8 @@ function NodeView({
   onSaveEdit,
   onCancelEdit,
   onEnterFromEdit,
+  onIndentStructural,
+  onOutdentStructural,
 }: {
   node: OutlineTreeNode;
   depth: number;
@@ -75,6 +77,10 @@ function NodeView({
   onCancelEdit: () => void;
   /** Enter in the edit box: save current + insert a new sibling below (same level). */
   onEnterFromEdit: (row: OutlineRow, text: string) => void;
+  /** Space at the start of the edit box: indent this bullet (make child of previous). */
+  onIndentStructural: (row: OutlineRow) => void;
+  /** Backspace at the start of the edit box: outdent this bullet (sibling of parent). */
+  onOutdentStructural: (row: OutlineRow) => void;
 }) {
   const { row } = node;
   const { text, layout, completedAt } = row;
@@ -88,7 +94,7 @@ function NodeView({
   if (editing) cls.push('editing');
 
   return (
-    <li className={cls.join(' ')} style={{ marginLeft: depth > 0 ? '1.1rem' : undefined }}>
+    <li className={cls.join(' ')} style={{ marginLeft: depth > 0 ? 'var(--indent)' : undefined }}>
       {editing ? (
         <div className="edit-row">
           <span className="bullet">{layout === 'todo' ? (completedAt ? '☑' : '☐') : '•'}</span>
@@ -102,11 +108,21 @@ function NodeView({
             onChange={(e) => onEditingText(e.target.value)}
             onKeyDown={(e) => {
               if (e.nativeEvent.isComposing) return; // IME composition (mobile CJK)
+              const ta = e.currentTarget;
+              const atStart = ta.selectionStart === 0 && ta.selectionEnd === 0;
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 onEnterFromEdit(row, editingText.trim());
               } else if (e.key === 'Escape') {
                 onCancelEdit();
+              } else if (atStart && mine && (e.key === ' ' || e.key === 'Spacebar') && !e.shiftKey) {
+                // Twos-style: space at start = indent (make child of previous sibling)
+                e.preventDefault();
+                onIndentStructural(row);
+              } else if (atStart && mine && e.key === 'Backspace' && editingText.length === 0) {
+                // Twos-style: backspace at start of an empty bullet = outdent
+                e.preventDefault();
+                onOutdentStructural(row);
               }
             }}
             aria-label="Edit bullet text"
@@ -153,6 +169,8 @@ function NodeView({
               onSaveEdit={onSaveEdit}
               onCancelEdit={onCancelEdit}
               onEnterFromEdit={onEnterFromEdit}
+              onIndentStructural={onIndentStructural}
+              onOutdentStructural={onOutdentStructural}
             />
           ))}
         </ul>
@@ -517,7 +535,7 @@ export function App() {
     try {
       const { client, did: myDid } = await requireClient();
       const children = data?.rows.filter((r) => r.parent === parent.uri) ?? [];
-      const keys = children.map((c) => c.sortKey).sort();
+      const keys = children.map((c) => c.sortKey).sort(compareKeys);
       const sortKey = midSortKey(keys[keys.length - 1] ?? undefined, undefined);
       await createBullet(client, myDid, {
         text,
@@ -678,7 +696,7 @@ export function App() {
 
   /** Rows grouped by parent for sibling math. */
   function siblingsOf(row: OutlineRow): OutlineRow[] {
-    return (data?.rows ?? []).filter((r) => (r.parent ?? undefined) === (row.parent ?? undefined)).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+    return (data?.rows ?? []).filter((r) => (r.parent ?? undefined) === (row.parent ?? undefined)).sort(compareRows);
   }
 
   /** Insert a new bullet as the next sibling below `row` (same parent). Returns new URI. */
@@ -774,7 +792,8 @@ export function App() {
     window.setTimeout(() => setWriteMsg(null), 3000);
   }
 
-  async function indentRow(row: OutlineRow) {
+  /** Indent row: become the last child of the previous sibling. Saves in-progress edit text if provided. */
+  async function indentRow(row: OutlineRow, textOverride?: string) {
     try {
       const { client, did: myDid } = await requireClient();
       // find previous sibling at the same level → become its child
@@ -784,10 +803,11 @@ export function App() {
       if (!prev) return;
       const newParent = prev.uri;
       // new sortKey: after last child of prev
-      const children = (data?.rows ?? []).filter((r) => r.parent === newParent).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+      const children = (data?.rows ?? []).filter((r) => r.parent === newParent).sort(compareRows);
       const sortKey = children.length ? midSortKey(children[children.length - 1]!.sortKey, undefined) : 'a0';
+      const text = textOverride?.trim() ?? row.text;
       await putBullet(client, myDid, rkeyFromUri(row.uri), {
-        text: row.text,
+        text,
         sortKey,
         createdAt: row.createdAt,
         parent: newParent,
@@ -801,7 +821,8 @@ export function App() {
     window.setTimeout(() => setWriteMsg(null), 3000);
   }
 
-  async function outdentRow(row: OutlineRow) {
+  /** Outdent row: become a sibling AFTER its parent. Saves in-progress edit text if provided. */
+  async function outdentRow(row: OutlineRow, textOverride?: string) {
     try {
       const { client, did: myDid } = await requireClient();
       if (!row.parent) return; // already top level
@@ -814,8 +835,9 @@ export function App() {
       const idx = pSibs.findIndex((r) => r.uri === parent.uri);
       const next = idx >= 0 ? pSibs[idx + 1] : undefined;
       const sortKey = midSortKey(parent.sortKey, next?.sortKey);
+      const text = textOverride?.trim() ?? row.text;
       await putBullet(client, myDid, rkeyFromUri(row.uri), {
-        text: row.text,
+        text,
         sortKey,
         createdAt: row.createdAt,
         parent: newParent,
@@ -828,6 +850,32 @@ export function App() {
     }
     window.setTimeout(() => setWriteMsg(null), 3000);
   }
+
+  /** Space-at-start / Backspace-at-start while editing: move structure + save in-progress text. */
+  const indentFromEdit = async (row: OutlineRow) => {
+    const t = editingText.trim();
+    await indentRow(row, t);
+    // keep the editor open on the same bullet (refreshOwn rebuilds the tree, but editingUri/editingText persist)
+    setEditingUri(row.uri);
+    setEditingTextState(t);
+    setEditingIsNew(editingIsNew);
+    // return caret to the start so repeated spaces keep indenting
+    requestAnimationFrame(() => {
+      const ta = document.querySelector('.node.editing .editor') as HTMLTextAreaElement | null;
+      if (ta) ta.setSelectionRange(0, 0);
+    });
+  };
+  const outdentFromEdit = async (row: OutlineRow) => {
+    const t = editingText.trim();
+    await outdentRow(row, t);
+    setEditingUri(row.uri);
+    setEditingTextState(t);
+    setEditingIsNew(editingIsNew);
+    requestAnimationFrame(() => {
+      const ta = document.querySelector('.node.editing .editor') as HTMLTextAreaElement | null;
+      if (ta) ta.setSelectionRange(0, 0);
+    });
+  };
 
   function startEdit(row: OutlineRow) {
     setEditingUri(row.uri);
@@ -892,7 +940,7 @@ export function App() {
   async function addTopBullet(text: string) {
     try {
       const { client, did: myDid } = await requireClient();
-      const tops = (data?.rows ?? []).filter((r) => !r.parent).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+      const tops = (data?.rows ?? []).filter((r) => !r.parent).sort(compareRows);
       const sortKey = tops.length ? midSortKey(tops[tops.length - 1]!.sortKey, undefined) : 'a0';
       const uri = await createBullet(client, myDid, {
         text,
@@ -939,7 +987,7 @@ export function App() {
     setAddChildTarget(null);
     try {
       const { client, did: myDid } = await requireClient();
-      const children = (data?.rows ?? []).filter((r) => r.parent === target.uri).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+      const children = (data?.rows ?? []).filter((r) => r.parent === target.uri).sort(compareRows);
       const sortKey = children.length ? midSortKey(children[children.length - 1]!.sortKey, undefined) : 'a0';
       const uri = await createBullet(client, myDid, {
         text: plainText(text),
@@ -1074,6 +1122,8 @@ export function App() {
                     onSaveEdit={saveEditText}
                     onCancelEdit={cancelEdit}
                     onEnterFromEdit={enterFromEdit}
+                    onIndentStructural={indentFromEdit}
+                    onOutdentStructural={outdentFromEdit}
                   />
                 ))}
               </ul>
