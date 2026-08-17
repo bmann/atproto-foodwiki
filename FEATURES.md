@@ -70,6 +70,12 @@ forest — the permissive, obvious default.
 
 ## What you can do today
 
+### Workflowy-style mobile-first outline
+
+- **Single column** outline — tap any bullet to select it; a bottom **action bar** offers the on-screen tools (▲ move up, ▼ move down, ⤶ indent, ⤺ outdent, ＋ add child, ✎ edit, ● set as root, 🗑 delete) — the same arrows Bulleted uses on mobile.
+- **Continuous entry** — in an edit box, Enter saves the current bullet **and opens a new one at the same level**, so you can type a whole list without touching the mouse.
+- Bullet icons on todo items toggle done/not-done.
+
 ### Whatever's in your outliner, rendered as a garden
 
 - **Nested bullets** with headings (`h1/h2/h3`), bullets, todos, code blocks, quotes.
@@ -91,7 +97,7 @@ forest — the permissive, obvious default.
 
 | Area | What's coming |
 |---|---|
-| ~~Inline editing~~ | ✅ **Shipped** — edit bullet text in place (textarea; Enter saves, Esc cancels), inline add-child row. No pop-ups anywhere. |
+| ~~Inline editing~~ | ✅ **Shipped** — edit bullet text in place (textarea; **Enter saves + creates a new bullet at the same level** for continuous entry, Shift+Enter newline, Esc cancel), inline add row. No pop-ups anywhere. |
 | ~~Settings page~~ | ✅ **Shipped** — ⚙ Garden Settings (owner-only): edit title/description, choose root bullet from a dropdown. |
 | **Auth & writes** | ✅ **Shipped** — sign in with your atproto account (OAuth) and add/edit/delete bullets, toggle todos, set your FoodWiki root. Import via app password is a backlog batch operation. |
 | ~~FoodWiki root chooser~~ | ✅ **Shipped** (set/clear root per bullet; shareable `/user/<did>/<rkey>/` URLs; whole-account default). **Polish backlog:** dedicated settings page for root choice. |
